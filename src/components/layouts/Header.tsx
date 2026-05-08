@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Search, Bell, LogOut, ChevronDown } from "lucide-react";
+import { Search, Bell, LogOut, ChevronDown, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -10,11 +11,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { useActivityWizard } from "@/components/crm/ActivityWizard";
 import { ROLE_LABEL, type SessionUser } from "@/lib/auth/types";
 import { clearMockSession } from "@/lib/auth/session";
 
 export function Header({ session }: { session: SessionUser }) {
   const router = useRouter();
+  const wizard = useActivityWizard();
 
   const handleLogout = () => {
     clearMockSession();
@@ -37,6 +40,15 @@ export function Header({ session }: { session: SessionUser }) {
           className="pl-9 h-9 bg-muted/50 border-0 focus-visible:bg-background"
         />
       </div>
+
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => wizard.open()}
+        className="hidden md:inline-flex"
+      >
+        <Zap className="h-4 w-4" />활동 기록
+      </Button>
 
       <ThemeToggle />
 

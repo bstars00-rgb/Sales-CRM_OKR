@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,10 +80,14 @@ function KanbanColumn({
       </div>
       <div className="space-y-2">
         {deals.map((d) => (
-          <Card
+          <Link
             key={d.id}
+            href={`/crm/deals/${d.id}`}
+            className="block"
+          >
+          <Card
             className={cn(
-              "p-3 cursor-pointer hover:shadow-md transition-shadow",
+              "p-3 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all",
               terminal === "won" && "border-success/50 bg-success/5",
               terminal === "lost" && "border-destructive/50 bg-destructive/5 opacity-75"
             )}
@@ -110,6 +115,7 @@ function KanbanColumn({
               </div>
             )}
           </Card>
+          </Link>
         ))}
         {deals.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed rounded-md">

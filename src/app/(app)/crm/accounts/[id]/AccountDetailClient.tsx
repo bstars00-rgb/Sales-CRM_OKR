@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GradeBadge, StatusBadge, SegmentBadge, CountryFlag, RiskDot } from "@/components/crm/AccountBadges";
+import { useActivityWizard } from "@/components/crm/ActivityWizard";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_ACTIVITIES } from "@/lib/mock/activities";
 import { formatCurrency, relativeTime, formatPercent } from "@/lib/utils/format";
-import { ArrowLeft, Star, Plus, Phone, Mail, MessageCircle, FileText, Calendar } from "lucide-react";
+import { ArrowLeft, Star, Plus, Phone, Mail, MessageCircle, FileText, Calendar, BarChart3, StickyNote } from "lucide-react";
 
 const ACTIVITY_ICON: Record<string, string> = {
   CALL: "📞", MEETING: "📅", EMAIL_LOG: "✉", MESSENGER: "💬",
@@ -21,6 +22,7 @@ const ACTIVITY_ICON: Record<string, string> = {
 };
 
 export function AccountDetailClient({ id }: { id: string }) {
+  const wizard = useActivityWizard();
   const account = MOCK_ACCOUNTS.find((a) => a.id === id);
   if (!account) notFound();
 
@@ -72,8 +74,12 @@ export function AccountDetailClient({ id }: { id: string }) {
             </div>
 
             <div className="flex flex-col gap-2 items-stretch min-w-[160px]">
-              <Button><Plus className="h-4 w-4" />새 딜</Button>
-              <Button variant="outline">
+              <Button asChild>
+                <Link href={`/crm/accounts/${account.id}/insight`}>
+                  <BarChart3 className="h-4 w-4" />미팅 모드
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={() => wizard.open({ accountName: account.name })}>
                 <Calendar className="h-4 w-4" />활동 기록
               </Button>
             </div>
@@ -240,14 +246,20 @@ export function AccountDetailClient({ id }: { id: string }) {
             <CardHeader className="pb-3"><CardTitle className="text-base">⚡ 빠른 활동 기록</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-3 gap-2">
               {[
-                { label: "통화", icon: Phone },
-                { label: "미팅", icon: Calendar },
-                { label: "이메일", icon: Mail },
-                { label: "카톡", icon: MessageCircle },
-                { label: "제안", icon: FileText },
-                { label: "메모", icon: FileText },
-              ].map(({ label, icon: Icon }) => (
-                <Button key={label} variant="outline" size="sm" className="flex-col h-16 gap-1">
+                { label: "통화", icon: Phone, channel: "CALL" as const },
+                { label: "미팅", icon: Calendar, channel: "MEETING" as const },
+                { label: "이메일", icon: Mail, channel: "EMAIL" as const },
+                { label: "메신저", icon: MessageCircle, channel: "MESSENGER" as const },
+                { label: "제안", icon: FileText, channel: "PROPOSAL" as const },
+                { label: "메모", icon: StickyNote, channel: "NOTE" as const },
+              ].map(({ label, icon: Icon, channel }) => (
+                <Button
+                  key={label}
+                  variant="outline"
+                  size="sm"
+                  className="flex-col h-16 gap-1"
+                  onClick={() => wizard.open({ accountName: account.name, defaultChannel: channel })}
+                >
                   <Icon className="h-4 w-4" />
                   <span className="text-xs">{label}</span>
                 </Button>
