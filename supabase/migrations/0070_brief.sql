@@ -28,15 +28,15 @@ CREATE TABLE weekly_reports (
 );
 
 CREATE TABLE weekly_report_items (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  report_id   UUID NOT NULL REFERENCES weekly_reports(id) ON DELETE CASCADE,
-  item_kind   VARCHAR(20) NOT NULL CHECK (item_kind IN ('ACCOUNT_UPDATE','DEAL_UPDATE','ISSUE','ACTION')),
-  account_id  UUID REFERENCES accounts(id) ON DELETE SET NULL,
-  deal_id     UUID REFERENCES deals(id) ON DELETE SET NULL,
-  title       VARCHAR(200) NOT NULL,
-  body        TEXT,
-  order_no    SMALLINT NOT NULL DEFAULT 0,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id         UUID NOT NULL REFERENCES weekly_reports(id) ON DELETE CASCADE,
+  item_kind         VARCHAR(20) NOT NULL CHECK (item_kind IN ('ACCOUNT_UPDATE','DEAL_UPDATE','ISSUE','ACTION')),
+  ellis_account_id  TEXT,        -- ELLIS의 account id
+  ellis_deal_id     TEXT,        -- ELLIS의 deal id
+  title             VARCHAR(200) NOT NULL,
+  body              TEXT,
+  order_no          SMALLINT NOT NULL DEFAULT 0,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE brief_comments (
