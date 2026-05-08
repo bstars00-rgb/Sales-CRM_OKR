@@ -9,6 +9,7 @@ import {
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { ROLE_LABEL, type SessionUser } from "@/lib/auth/types";
 import { clearMockSession } from "@/lib/auth/session";
 
@@ -36,6 +37,8 @@ export function Header({ session }: { session: SessionUser }) {
           className="pl-9 h-9 bg-muted/50 border-0 focus-visible:bg-background"
         />
       </div>
+
+      <ThemeToggle />
 
       <button
         className="relative inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent transition-colors"
