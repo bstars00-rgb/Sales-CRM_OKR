@@ -32,6 +32,9 @@ export default function OkrPage() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">
+            <Link href="/okr/tree">트리 뷰</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
             <Link href="/okr/critical-six">Critical 6</Link>
           </Button>
           <Button size="sm" asChild>
