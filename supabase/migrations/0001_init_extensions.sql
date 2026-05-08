@@ -1,0 +1,15 @@
+-- Required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "citext";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+-- Helper for polymorphic owner CHECK constraints
+CREATE OR REPLACE FUNCTION num_nonnulls_uuid(VARIADIC arr UUID[]) RETURNS INTEGER
+LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE n INTEGER := 0; v UUID;
+BEGIN
+  FOREACH v IN ARRAY arr LOOP
+    IF v IS NOT NULL THEN n := n + 1; END IF;
+  END LOOP;
+  RETURN n;
+END $$;
