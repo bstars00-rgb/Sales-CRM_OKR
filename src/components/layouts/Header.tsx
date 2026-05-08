@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Search, Bell, LogOut, ChevronDown, Zap } from "lucide-react";
+import { useState } from "react";
+import { Search, LogOut, ChevronDown, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { CommandK } from "@/components/layouts/CommandK";
+import { NotificationBell } from "@/components/layouts/NotificationBell";
 import { useActivityWizard } from "@/components/crm/ActivityWizard";
 import { ROLE_LABEL, type SessionUser } from "@/lib/auth/types";
 import { clearMockSession } from "@/lib/auth/session";
@@ -32,14 +34,20 @@ export function Header({ session }: { session: SessionUser }) {
     .toUpperCase();
 
   return (
-    <header className="h-14 border-b bg-card flex items-center px-6 gap-4">
-      <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="고객사·딜·담당자 검색 (Cmd/Ctrl+K)"
-          className="pl-9 h-9 bg-muted/50 border-0 focus-visible:bg-background"
-        />
-      </div>
+    <header className="h-14 border-b bg-card flex items-center px-4 md:px-6 gap-2 md:gap-4">
+      <CommandK />
+      <button
+        onClick={() => {
+          // dispatch synthetic Cmd+K
+          const ev = new KeyboardEvent("keydown", { key: "k", metaKey: true, ctrlKey: true });
+          window.dispatchEvent(ev);
+        }}
+        className="relative flex-1 max-w-md flex items-center gap-2 h-9 rounded-md bg-muted/50 hover:bg-muted px-3 text-left transition-colors"
+      >
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground hidden sm:inline">고객사·딜·담당자 검색</span>
+        <kbd className="ml-auto text-xs text-muted-foreground bg-background border rounded px-1.5 py-0.5 hidden md:inline-block">⌘K</kbd>
+      </button>
 
       <Button
         size="sm"
@@ -51,14 +59,7 @@ export function Header({ session }: { session: SessionUser }) {
       </Button>
 
       <ThemeToggle />
-
-      <button
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent transition-colors"
-        aria-label="알림"
-      >
-        <Bell className="h-4 w-4" />
-        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-      </button>
+      <NotificationBell />
 
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2 px-2 h-9 rounded-md hover:bg-accent transition-colors">
