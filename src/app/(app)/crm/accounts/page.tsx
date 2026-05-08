@@ -36,8 +36,8 @@ export default function AccountsPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">CSV 내보내기</Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4" />새 고객사
+          <Button size="sm" asChild>
+            <Link href="/crm/accounts/new"><Plus className="h-4 w-4" />새 고객사</Link>
           </Button>
         </div>
       </div>

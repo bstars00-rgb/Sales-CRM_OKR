@@ -34,7 +34,9 @@ export default function OkrPage() {
           <Button asChild variant="outline" size="sm">
             <Link href="/okr/critical-six">Critical 6</Link>
           </Button>
-          <Button size="sm"><Plus className="h-4 w-4" />새 Objective</Button>
+          <Button size="sm" asChild>
+            <Link href="/okr/new"><Plus className="h-4 w-4" />새 Objective</Link>
+          </Button>
         </div>
       </div>
 

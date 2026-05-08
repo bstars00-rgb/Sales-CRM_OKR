@@ -38,7 +38,9 @@ export default function DealKanbanPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm"><Filter className="h-4 w-4" />필터</Button>
-          <Button size="sm"><Plus className="h-4 w-4" />새 딜</Button>
+          <Button size="sm" asChild>
+            <Link href="/crm/deals/new"><Plus className="h-4 w-4" />새 딜</Link>
+          </Button>
         </div>
       </div>
 
