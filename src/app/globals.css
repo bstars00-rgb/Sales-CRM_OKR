@@ -62,3 +62,49 @@
   body { @apply bg-background text-foreground; font-feature-settings: "rlig" 1, "calt" 1; }
   html { -webkit-text-size-adjust: 100%; }
 }
+
+/* ============================================================
+ * 인쇄용 스타일 — Brief / Customer Insight 출력 시 적용
+ * ============================================================ */
+@media print {
+  @page { margin: 1.2cm; }
+
+  /* 다크 모드 강제 해제 — 인쇄는 항상 라이트 */
+  html, html.dark {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --border: 214 32% 91%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+  }
+
+  /* 사이드바·헤더·플로팅 버튼·alert badge·탭 트리거 등 인쇄에서 숨김 */
+  aside, header, [role="dialog"], [data-print-hide], .no-print {
+    display: none !important;
+  }
+
+  /* 사이드바·헤더가 차지하던 공간 제거 */
+  main {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  body, html {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* 카드 내부 그림자·둥근모서리 인쇄에 부담 — 단순화 */
+  .card, [class*="shadow"] {
+    box-shadow: none !important;
+    border: 1px solid hsl(var(--border)) !important;
+  }
+
+  /* 페이지 분할 보조 */
+  .print-page-break { page-break-after: always; }
+  .print-avoid-break { page-break-inside: avoid; }
+
+  /* 차트 색상 명도 보정 (CMYK 인쇄 대비) */
+  svg text { fill: #111 !important; }
+}

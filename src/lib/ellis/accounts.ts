@@ -7,7 +7,8 @@
  * 지금은 인터페이스만 — 실 통합 시점에 ellisFetch 호출로 교체.
  */
 
-import { ellisFetch } from "./client";
+// ellisFetch는 ELLIS 스펙 확정 후 사용 예정
+// import { ellisFetch } from "./client";
 import type { Account } from "@/lib/mock/types";
 
 export interface EllisAccountQuery {
@@ -20,15 +21,14 @@ export interface EllisAccountQuery {
   offset?: number;
 }
 
-export async function fetchAccounts(query: EllisAccountQuery = {}): Promise<Account[]> {
+export async function fetchAccounts(_query: EllisAccountQuery = {}): Promise<Account[]> {
   // TODO: ELLIS API 스펙 확정 후 endpoint·필드 매핑 구현
-  // 예시:
   // const raw = await ellisFetch<EllisAccountRow[]>("/api/accounts", { query });
   // return raw.map(mapEllisAccount);
   throw new Error("ELLIS accounts adapter not implemented yet");
 }
 
-export async function fetchAccountById(id: string): Promise<Account | null> {
+export async function fetchAccountById(_id: string): Promise<Account | null> {
   // TODO
   throw new Error("ELLIS accounts.fetchAccountById not implemented yet");
 }

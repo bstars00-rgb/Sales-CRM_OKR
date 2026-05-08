@@ -10,7 +10,7 @@ import { MOCK_CRITICAL_6, MOCK_KPI_MANAGER } from "@/lib/mock/kpi";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
 import { formatCurrency, formatPercent, relativeTime } from "@/lib/utils/format";
-import { CheckCircle2, Sparkles, Send, Save } from "lucide-react";
+import { CheckCircle2, Sparkles, Send, Save, Printer } from "lucide-react";
 
 const RECOMMENDED_HIGHLIGHTS = [
   "ABC Travel Q3 패키지 가격 합의 도출 ($94/night)",
@@ -225,6 +225,15 @@ export default function BriefPage() {
               <Button variant="outline" className="w-full" size="sm">
                 <Save className="h-4 w-4" />
                 임시저장
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                size="sm"
+                onClick={() => typeof window !== "undefined" && window.print()}
+              >
+                <Printer className="h-4 w-4" />
+                인쇄 / PDF 저장
               </Button>
               <Button className="w-full">
                 <Send className="h-4 w-4" />
