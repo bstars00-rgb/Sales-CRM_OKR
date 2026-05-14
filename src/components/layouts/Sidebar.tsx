@@ -47,6 +47,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { href: "/brief",              label: "내 주간보고", icon: FileText },
       { href: "/brief/team",         label: "팀 주간보고", icon: FileText, roles: ["SUPER_ADMIN", "SALES_LEAD"] },
+      { href: "/brief/company",      label: "회사 주간보고", icon: FileText, roles: ["SUPER_ADMIN"] },
     ],
   },
   {

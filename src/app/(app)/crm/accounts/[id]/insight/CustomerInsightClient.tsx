@@ -1,7 +1,7 @@
 "use client";
 
 import { notFound, useRouter } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   BarChart, Bar,
@@ -11,6 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { CountryFlag } from "@/components/crm/AccountBadges";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
+import { getAccountTopHotels } from "@/lib/mock/hotels";
+import {
+  getAccountMonthlyRevenue, getAccountQuarterly, getAccountTotals, getAccountYoY,
+} from "@/lib/mock/revenue";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils/format";
 import { X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -23,41 +27,6 @@ const SLIDES = [
   "seasonality",
   "proposal",
 ] as const;
-type SlideKey = typeof SLIDES[number];
-
-// 24개월 매출 mock — sin curve로 시즌성 흉내
-function generate24MonthRevenue(baseMonthly: number) {
-  const out: { month: string; revenue: number; roomNights: number }[] = [];
-  const now = new Date();
-  for (let i = 23; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const seasonal = 1 + 0.4 * Math.sin((d.getMonth() / 12) * Math.PI * 2 + 1);
-    const growth = 1 + (24 - i) * 0.012;
-    const noise = 0.85 + Math.random() * 0.3;
-    const revenue = Math.round(baseMonthly * seasonal * growth * noise);
-    out.push({
-      month: `${String(d.getFullYear()).slice(2)}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-      revenue,
-      roomNights: Math.round(revenue / 110000),
-    });
-  }
-  return out;
-}
-
-const TOP_HOTELS = [
-  { name: "다낭 푸라마 리조트", country: "🇻🇳", revenue: 84_000_000 },
-  { name: "호치민 르네상스", country: "🇻🇳", revenue: 62_000_000 },
-  { name: "방콕 그랜드 하얏트", country: "🇹🇭", revenue: 48_000_000 },
-  { name: "도쿄 임페리얼", country: "🇯🇵", revenue: 42_000_000 },
-  { name: "발리 더 무리아", country: "🇮🇩", revenue: 36_000_000 },
-];
-
-const SEASON = [
-  { quarter: "Q1", revenue: 78 },
-  { quarter: "Q2", revenue: 92 },
-  { quarter: "Q3", revenue: 124 },
-  { quarter: "Q4", revenue: 106 },
-];
 
 export function CustomerInsightClient({ id }: { id: string }) {
   const router = useRouter();
@@ -65,17 +34,19 @@ export function CustomerInsightClient({ id }: { id: string }) {
   if (!account) notFound();
 
   const [slide, setSlide] = useState<number>(0);
-  const [trendData] = useState(() =>
-    generate24MonthRevenue(Math.max(account.totalRevenueYtd / 12, 14_000_000))
+
+  // 결정론적 매출/호텔 데이터 — 항상 같은 결과
+  const trendData = useMemo(() => getAccountMonthlyRevenue(account), [account]);
+  const totals = useMemo(() => getAccountTotals(account), [account]);
+  const quarterly = useMemo(() => getAccountQuarterly(account), [account]);
+  const yoy = useMemo(() => getAccountYoY(account), [account]);
+  const topHotels = useMemo(
+    () => getAccountTopHotels(account.id, account.totalRevenueYtd),
+    [account]
   );
 
   const wonDeals = MOCK_DEALS.filter((d) => d.accountId === account.id && d.outcome === "WON");
-  const totalRoomNights = trendData.reduce((s, d) => s + d.roomNights, 0);
-  const totalRev24m = trendData.reduce((s, d) => s + d.revenue, 0);
-  const adr = totalRoomNights > 0 ? totalRev24m / totalRoomNights : 0;
-  const last12mRev = trendData.slice(-12).reduce((s, d) => s + d.revenue, 0);
-  const prev12mRev = trendData.slice(0, 12).reduce((s, d) => s + d.revenue, 0);
-  const yoy = prev12mRev > 0 ? ((last12mRev - prev12mRev) / prev12mRev) * 100 : 0;
+  const hasData = trendData.length > 0;
 
   const next = useCallback(() => setSlide((s) => Math.min(SLIDES.length - 1, s + 1)), []);
   const prev = useCallback(() => setSlide((s) => Math.max(0, s - 1)), []);
@@ -139,88 +110,129 @@ export function CustomerInsightClient({ id }: { id: string }) {
           {SLIDES[slide] === "metrics" && (
             <div className="space-y-10">
               <h2 className="text-3xl font-bold text-center">함께 만든 숫자</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                <BigStat label="누적 거래액" value={formatCurrency(totalRev24m)} sub="최근 24개월" />
-                <BigStat label="Room Night" value={formatNumber(totalRoomNights)} sub="객실박" />
-                <BigStat label="ADR" value={formatCurrency(adr)} sub="평균 객실단가" />
-                <BigStat label="WON 계약" value={`${wonDeals.length}건`} />
-                <BigStat label="YoY 성장률" value={formatPercent(Math.abs(yoy), 0)}
-                          sub={yoy >= 0 ? "▲ 성장" : "▼ 감소"}
-                          color={yoy >= 0 ? "text-success" : "text-destructive"} />
-                <BigStat label="고객사 등급" value="KEY 파트너" sub="장기 협력" />
-              </div>
+              {hasData ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <BigStat label="누적 거래액" value={formatCurrency(totals.revenue)} sub="최근 24개월" />
+                  <BigStat label="Room Night" value={formatNumber(totals.roomNights)} sub="객실박" />
+                  <BigStat label="ADR" value={formatCurrency(totals.adr)} sub="평균 객실단가" />
+                  <BigStat label="거래 건수" value={formatNumber(totals.transactions)} sub="24개월" />
+                  <BigStat
+                    label="YoY 성장률"
+                    value={formatPercent(Math.abs(yoy), 0)}
+                    sub={yoy >= 0 ? "▲ 성장" : "▼ 감소"}
+                    color={yoy >= 0 ? "text-success" : "text-destructive"}
+                  />
+                  <BigStat
+                    label="고객사 등급"
+                    value={account.grade === "KEY_ACCOUNT" ? "KEY 파트너" :
+                           account.grade === "GROWTH"      ? "성장 파트너" :
+                           account.grade === "NEW_PROSPECT"? "신규 후보" : "회복 대상"}
+                    sub={`WON 누적 ${wonDeals.length}건`}
+                  />
+                </div>
+              ) : (
+                <p className="text-center text-xl text-muted-foreground">
+                  아직 거래 이력이 없습니다 — 첫 거래를 함께 시작해보시죠.
+                </p>
+              )}
             </div>
           )}
 
           {SLIDES[slide] === "trend" && (
             <div className="space-y-6">
               <h2 className="text-3xl font-bold">24개월 거래 추이</h2>
-              <div className="bg-card border rounded-lg p-6">
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={trendData} margin={{ left: 40, right: 20, top: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }}
-                           tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
-                    <Tooltip
-                      formatter={(v: number) => formatCurrency(v)}
-                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6 }}
-                    />
-                    <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))"
-                          strokeWidth={3} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="text-center text-lg text-muted-foreground">
-                {yoy >= 10 ? "성장세가 명확히 보입니다." : yoy >= 0 ? "안정적인 거래 흐름." : "조정 구간 — 다음 분기에 회복 여지."}
-              </p>
+              {hasData ? (
+                <>
+                  <div className="bg-card border rounded-lg p-6">
+                    <ResponsiveContainer width="100%" height={400}>
+                      <LineChart data={trendData} margin={{ left: 40, right: 20, top: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="monthLabel" tick={{ fontSize: 12 }} />
+                        <YAxis
+                          tick={{ fontSize: 12 }}
+                          tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`}
+                        />
+                        <Tooltip
+                          formatter={(v: number) => formatCurrency(v)}
+                          contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6 }}
+                        />
+                        <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))"
+                              strokeWidth={3} dot={false} name="매출" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="text-center text-lg text-muted-foreground">
+                    {yoy >= 10 ? "성장세가 명확히 보입니다." :
+                     yoy >= 0  ? "안정적인 거래 흐름." :
+                                 "조정 구간 — 다음 분기에 회복 여지."}
+                  </p>
+                </>
+              ) : (
+                <p className="text-center text-xl text-muted-foreground">거래 이력 없음</p>
+              )}
             </div>
           )}
 
           {SLIDES[slide] === "topHotels" && (
             <div className="space-y-6">
-              <h2 className="text-3xl font-bold">귀사가 가장 많이 판매한 호텔 TOP 5</h2>
-              <div className="space-y-3">
-                {TOP_HOTELS.map((h, i) => (
-                  <div key={h.name} className="flex items-center gap-4 bg-card border rounded-lg p-4">
-                    <div className="text-3xl font-bold text-muted-foreground w-12">#{i + 1}</div>
-                    <div className="flex-1">
-                      <div className="text-xl font-medium">{h.country} {h.name}</div>
+              <h2 className="text-3xl font-bold">귀사가 가장 많이 판매한 호텔 TOP {topHotels.length}</h2>
+              {topHotels.length === 0 ? (
+                <p className="text-center text-xl text-muted-foreground">아직 거래 이력이 부족합니다</p>
+              ) : (
+                <div className="space-y-3">
+                  {topHotels.map(({ hotel, revenue }, i) => (
+                    <div key={hotel.id} className="flex items-center gap-4 bg-card border rounded-lg p-4">
+                      <div className="text-3xl font-bold text-muted-foreground w-12">#{i + 1}</div>
+                      <div className="flex-1">
+                        <div className="text-xl font-medium">{hotel.countryFlag} {hotel.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {hotel.city} · {hotel.category} · {"★".repeat(hotel.starRating)}
+                        </div>
+                      </div>
+                      <div className="text-2xl font-bold tabular-nums">{formatCurrency(revenue)}</div>
                     </div>
-                    <div className="text-2xl font-bold tabular-nums">{formatCurrency(h.revenue)}</div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {SLIDES[slide] === "seasonality" && (
             <div className="space-y-6">
               <h2 className="text-3xl font-bold">시즌 패턴</h2>
-              <div className="bg-card border rounded-lg p-6">
-                <ResponsiveContainer width="100%" height={360}>
-                  <BarChart data={SEASON} margin={{ left: 30, right: 20, top: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="quarter" tick={{ fontSize: 14 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip
-                      formatter={(v: number) => `지수 ${v}`}
-                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6 }}
-                    />
-                    <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="bg-success/10 border border-success/30 rounded-lg p-4">
-                  <div className="text-sm text-success">성수기</div>
-                  <div className="text-xl font-bold mt-1">7-8월 / 12-2월</div>
-                </div>
-                <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
-                  <div className="text-sm text-warning">상승 여지</div>
-                  <div className="text-xl font-bold mt-1">4-5월 비수기</div>
-                </div>
-              </div>
+              {quarterly.length > 0 ? (
+                <>
+                  <div className="bg-card border rounded-lg p-6">
+                    <ResponsiveContainer width="100%" height={360}>
+                      <BarChart data={quarterly} margin={{ left: 30, right: 20, top: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="quarter" tick={{ fontSize: 14 }} />
+                        <YAxis
+                          tick={{ fontSize: 12 }}
+                          tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`}
+                        />
+                        <Tooltip
+                          formatter={(v: number) => formatCurrency(v)}
+                          contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6 }}
+                        />
+                        <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="bg-success/10 border border-success/30 rounded-lg p-4">
+                      <div className="text-sm text-success">성수기</div>
+                      <div className="text-xl font-bold mt-1">7-8월 / 12-2월</div>
+                    </div>
+                    <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
+                      <div className="text-sm text-warning">상승 여지</div>
+                      <div className="text-xl font-bold mt-1">4-5월 비수기</div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-center text-xl text-muted-foreground">거래 이력 없음</p>
+              )}
             </div>
           )}
 
