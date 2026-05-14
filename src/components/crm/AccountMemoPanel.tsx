@@ -40,21 +40,36 @@ const KIND_META: Record<MemoKind, {
 // 데모용 mock — accountId별 메모 사전 시드
 const SEED_MEMOS: Record<string, Memo[]> = {
   "acc-001": [
-    {
-      id: "m-1", kind: "STRATEGY", pinned: true,
+    { id: "m-1", kind: "STRATEGY",    pinned: true,
       content: "Q3까지 항공+호텔 패키지로 GP 30% 확장 합의. 응웬 사장 결정 대기. API 연동을 카드로 활용 가능.",
-      authorName: "김민수", createdAt: dayOffset(-5),
-    },
-    {
-      id: "m-2", kind: "RISK", pinned: false,
+      authorName: "김민수", createdAt: dayOffset(-5) },
+    { id: "m-2", kind: "RISK",        pinned: false,
       content: "API 연동 ABC측 IT 답신 지연 (2주). 6월 인보이스 발행 보류 가능성.",
-      authorName: "이영준", createdAt: dayOffset(-3),
-    },
-    {
-      id: "m-3", kind: "OPPORTUNITY", pinned: false,
+      authorName: "이영준", createdAt: dayOffset(-3) },
+    { id: "m-3", kind: "OPPORTUNITY", pinned: false,
       content: "베트남 중부 신규 호텔 3곳을 ABC에 제안하면 분기 +$30K 가능.",
-      authorName: "김민수", createdAt: dayOffset(-1),
-    },
+      authorName: "김민수", createdAt: dayOffset(-1) },
+  ],
+  "acc-013": [
+    { id: "m-13-1", kind: "STRATEGY", pinned: true,
+      content: "Hana Tour는 분기 매출의 17% 차지. 5%p 이상 단가 인하 절대 불가. 부산·제주 권역 묶음으로 마진 보존.",
+      authorName: "박지영", createdAt: dayOffset(-10) },
+    { id: "m-13-2", kind: "OPPORTUNITY", pinned: false,
+      content: "최영수 전무: 가족 휴가용 럭셔리 패키지 관심. 별도 라인업 검토.",
+      authorName: "박지영", createdAt: dayOffset(-4) },
+  ],
+  "acc-011": [
+    { id: "m-11-1", kind: "STRATEGY", pinned: true,
+      content: "JTB Korea Desk가 한국 호텔 공급 결정권 보유. 코바야시 부장 라인 유지가 핵심.",
+      authorName: "나카무라 켄지", createdAt: dayOffset(-8) },
+    { id: "m-11-2", kind: "RISK", pinned: false,
+      content: "엔화 약세로 H2 단가 협상 어려움 예상. 일본 시즌 가산 적용 협의 필요.",
+      authorName: "나카무라 켄지", createdAt: dayOffset(-2) },
+  ],
+  "acc-009": [
+    { id: "m-9-1", kind: "STRATEGY", pinned: true,
+      content: "Saigontourist는 베트남 1위 OTA. 정산 신속·정확이 신뢰의 핵심. 분쟁 0 유지.",
+      authorName: "Linh Tran", createdAt: dayOffset(-15) },
   ],
 };
 
