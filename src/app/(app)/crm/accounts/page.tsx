@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GradeBadge, StatusBadge, SegmentBadge, CountryFlag, RiskDot } from "@/components/crm/AccountBadges";
+import { EmptyState } from "@/components/common/StateCards";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { formatCurrency, relativeTime } from "@/lib/utils/format";
-import { Plus, Search, Filter, Star } from "lucide-react";
+import { Plus, Search, Filter, Star, Building2 } from "lucide-react";
 
 export default function AccountsPage() {
   const [q, setQ] = useState("");
@@ -71,6 +72,16 @@ export default function AccountsPage() {
         </div>
       </Card>
 
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Building2 className="h-10 w-10" />}
+          title={q || grade !== "ALL" || country !== "ALL" ? "조건에 맞는 고객사가 없습니다" : "아직 등록된 고객사가 없습니다"}
+          description={q || grade !== "ALL" || country !== "ALL"
+            ? "필터를 초기화하거나 다른 검색어를 시도해보세요."
+            : "첫 번째 고객사를 등록하고 영업을 시작하세요."}
+          action={{ label: "필터 초기화", onClick: () => { setQ(""); setGrade("ALL"); setCountry("ALL"); } }}
+        />
+      ) : (
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -137,6 +148,7 @@ export default function AccountsPage() {
           </table>
         </div>
       </Card>
+      )}
     </div>
   );
 }
