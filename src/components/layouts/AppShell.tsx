@@ -85,7 +85,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Header session={session} />
           </div>
         </div>
-        <main className="flex-1 overflow-y-auto">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-3 focus:py-2 focus:rounded-md focus:shadow-lg"
+        >
+          본문으로 건너뛰기
+        </a>
+        <main id="main-content" className="flex-1 overflow-y-auto" tabIndex={-1}>
           <div className="p-4 md:p-6 max-w-[1600px] mx-auto">{children}</div>
         </main>
       </div>

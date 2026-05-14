@@ -69,7 +69,7 @@ export function Sidebar({ role }: { role: UserRole }) {
           <span>Sales CRM</span>
         </Link>
       </div>
-      <nav className="flex-1 overflow-y-auto py-3">
+      <nav className="flex-1 overflow-y-auto py-3" aria-label="주 메뉴">
         {NAV.map((sec) => {
           const visible = sec.items.filter((it) => !it.roles || it.roles.includes(role));
           if (visible.length === 0) return null;

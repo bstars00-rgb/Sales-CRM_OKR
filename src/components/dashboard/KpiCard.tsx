@@ -35,10 +35,10 @@ export function KpiCardWidget({ card }: { card: KpiCardType }) {
 
   return (
     <Card>
-      <CardContent className="p-5">
-        <div className="text-sm text-muted-foreground mb-1">{card.label}</div>
-        <div className="text-2xl font-bold tracking-tight">{formatValue(card)}</div>
-        <div className="mt-2 flex items-center gap-2 text-xs">
+      <CardContent className="p-3 md:p-5">
+        <div className="text-xs md:text-sm text-muted-foreground mb-1 line-clamp-1">{card.label}</div>
+        <div className="text-lg md:text-2xl font-bold tracking-tight">{formatValue(card)}</div>
+        <div className="mt-1.5 md:mt-2 flex items-center gap-2 text-xs flex-wrap">
           {showAchievement && (
             <span className={cn("rounded px-1.5 py-0.5 font-medium", color)}>
               {formatPercent(card.achievementPct, 0)}

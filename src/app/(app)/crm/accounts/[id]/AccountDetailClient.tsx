@@ -91,13 +91,15 @@ export function AccountDetailClient({ id }: { id: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
           <Tabs defaultValue="overview">
-            <TabsList>
-              <TabsTrigger value="overview">개요</TabsTrigger>
-              <TabsTrigger value="contacts">담당자 ({contacts.length})</TabsTrigger>
-              <TabsTrigger value="deals">딜 ({deals.length})</TabsTrigger>
-              <TabsTrigger value="activities">활동 ({activities.length})</TabsTrigger>
-              <TabsTrigger value="memo">메모</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-1 px-1">
+              <TabsList className="w-max">
+                <TabsTrigger value="overview">개요</TabsTrigger>
+                <TabsTrigger value="contacts">담당자 ({contacts.length})</TabsTrigger>
+                <TabsTrigger value="deals">딜 ({deals.length})</TabsTrigger>
+                <TabsTrigger value="activities">활동 ({activities.length})</TabsTrigger>
+                <TabsTrigger value="memo">메모</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="overview" className="space-y-4">
               <Card>
