@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "test:e2e:install": "playwright install chromium"
+    "test:e2e:install": "playwright install chromium",
+    "build:test": "cross-env NEXT_SKIP_BASE_PATH=1 next build"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.1",
@@ -43,6 +44,7 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^10.1.0",
     "eslint": "^9.12.0",
     "eslint-config-next": "^15.5.18",
     "http-server": "^14.1.1",
