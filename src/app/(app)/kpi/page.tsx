@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Settings } from "lucide-react";
 import { KpiCardWidget } from "@/components/dashboard/KpiCard";
 import { MOCK_KPI_MANAGER } from "@/lib/mock/kpi";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
@@ -22,9 +25,16 @@ export default function KpiPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">KPI · 인센티브</h1>
-        <p className="text-sm text-muted-foreground mt-1">2026 Q2 · 분기말 추정값</p>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">KPI · 인센티브</h1>
+          <p className="text-sm text-muted-foreground mt-1">2026 Q2 · 분기말 추정값</p>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/kpi/incentive-rules">
+            <Settings className="h-4 w-4" />인센티브 룰 편집
+          </Link>
+        </Button>
       </div>
 
       {/* KPI Cards */}

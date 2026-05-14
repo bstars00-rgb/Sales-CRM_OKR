@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { MOCK_CRITICAL_6, MOCK_KPI_MANAGER } from "@/lib/mock/kpi";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
 import { formatCurrency, formatPercent, relativeTime } from "@/lib/utils/format";
-import { CheckCircle2, Sparkles, Send, Save, Printer } from "lucide-react";
+import { CheckCircle2, Sparkles, Send, Save, Printer, Cloud, Loader2 } from "lucide-react";
 
 const RECOMMENDED_HIGHLIGHTS = [
   "ABC Travel Q3 패키지 가격 합의 도출 ($94/night)",
@@ -31,11 +31,30 @@ const AUTO_ISSUES = [
   "ABC API 일정 ABC측 IT 답신 지연",
 ];
 
+type SaveStatus = "idle" | "saving" | "saved";
+
 export default function BriefPage() {
   const [highlights, setHighlights] = useState(RECOMMENDED_HIGHLIGHTS.join("\n"));
   const [issues, setIssues] = useState("");
   const [nextWeekPlan, setNextWeekPlan] = useState(RECOMMENDED_ACTIONS.slice(0, 5).join("\n"));
   const [c6Items, setC6Items] = useState<string[]>(RECOMMENDED_ACTIONS.slice(0, 6));
+
+  // 자동 저장 indicator — 입력 후 1.5초 debounce
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    setSaveStatus("saving");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSaveStatus("saved");
+      setLastSavedAt(new Date());
+    }, 1500);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [highlights, issues, nextWeekPlan, c6Items]);
 
   const week = currentIsoWeek();
   const won = MOCK_DEALS.filter((d) => d.outcome === "WON");
@@ -92,7 +111,7 @@ export default function BriefPage() {
 
       {/* Main */}
       <div className="space-y-4 min-w-0">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Weekly Sales Brief</h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -101,6 +120,7 @@ export default function BriefPage() {
               <Badge variant="muted">DRAFT</Badge>
             </p>
           </div>
+          <SaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} />
         </div>
 
         <Section title="✏️ 이번 주 주요 성과" hint="추천 2건이 아래에 자동으로 채워졌습니다. 수정 가능">
@@ -289,6 +309,23 @@ function Row({ k, v }: { k: string; v: string }) {
     <div className="flex justify-between text-sm">
       <span className="text-muted-foreground">{k}</span>
       <span className="font-medium tabular-nums">{v}</span>
+    </div>
+  );
+}
+
+function SaveIndicator({ status, lastSavedAt }: { status: SaveStatus; lastSavedAt: Date | null }) {
+  if (status === "idle" && !lastSavedAt) return null;
+  if (status === "saving") {
+    return (
+      <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />저장 중...
+      </div>
+    );
+  }
+  return (
+    <div className="text-xs text-success flex items-center gap-1.5">
+      <Cloud className="h-3.5 w-3.5" />
+      {lastSavedAt ? `${relativeTime(lastSavedAt)} 자동 저장됨` : "자동 저장됨"}
     </div>
   );
 }

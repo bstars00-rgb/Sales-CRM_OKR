@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GradeBadge, StatusBadge, SegmentBadge, CountryFlag, RiskDot } from "@/components/crm/AccountBadges";
 import { useActivityWizard } from "@/components/crm/ActivityWizard";
+import { AccountMemoPanel } from "@/components/crm/AccountMemoPanel";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
@@ -199,11 +200,7 @@ export function AccountDetailClient({ id }: { id: string }) {
             </TabsContent>
 
             <TabsContent value="memo">
-              <Card>
-                <CardContent className="p-4 text-sm text-muted-foreground">
-                  메모 기능은 v1.5에서 활성화됩니다. (account_notes 테이블)
-                </CardContent>
-              </Card>
+              <AccountMemoPanel accountId={account.id} />
             </TabsContent>
           </Tabs>
         </div>
