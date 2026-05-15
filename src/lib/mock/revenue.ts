@@ -152,29 +152,164 @@ export function getAccountQuarterly(account: Account): Array<{ quarter: string; 
 }
 
 /**
- * 회사 전체 12개월 매출 합산 — MOCK_ACCOUNTS 전체에서 집계.
- * 대시보드/Brief에서 사용.
+ * 회사 전체 24개월 매출 합산 — MOCK_ACCOUNTS 전체에서 집계.
  */
-export function getCompanyMonthlyTotals(): Array<{ month: string; revenue: number; gp: number }> {
-  // 모든 활성 계정의 매출 합산
-  const aggregated: Record<string, { revenue: number; gp: number }> = {};
-
+function getAllMonthlyAggregated(): Map<string, { revenue: number; gp: number }> {
+  const aggregated = new Map<string, { revenue: number; gp: number }>();
   for (const account of MOCK_ACCOUNTS) {
     const series = getAccountMonthlyRevenue(account);
     for (const m of series) {
-      const cur = aggregated[m.yearMonth] ?? { revenue: 0, gp: 0 };
-      aggregated[m.yearMonth] = {
+      const cur = aggregated.get(m.yearMonth) ?? { revenue: 0, gp: 0 };
+      aggregated.set(m.yearMonth, {
         revenue: cur.revenue + m.revenue,
         gp: cur.gp + m.gp,
-      };
+      });
     }
   }
+  return aggregated;
+}
 
-  return Object.entries(aggregated)
+/**
+ * 회사 전체 12개월 매출 + YoY 비교 — CEO 대시보드의 라인 차트용.
+ */
+export function getCompanyRevenueTrend(): Array<{ month: string; thisYear: number; lastYear: number }> {
+  const all = getAllMonthlyAggregated();
+  const entries = Array.from(all.entries()).sort(([a], [b]) => (a < b ? -1 : 1));
+  if (entries.length < 24) return [];
+
+  // 최근 12개월 + 이전 12개월 비교
+  const last12 = entries.slice(-12);
+  const prev12 = entries.slice(-24, -12);
+
+  return last12.map(([key, v], i) => {
+    const [, mo] = key.split("-");
+    return {
+      month: `${Number(mo)}월`,
+      thisYear: v.revenue,
+      lastYear: prev12[i]?.[1].revenue ?? 0,
+    };
+  });
+}
+
+/**
+ * 회사 전체 12개월 매출 합산 (단순) — Brief 용.
+ */
+export function getCompanyMonthlyTotals(): Array<{ month: string; revenue: number; gp: number }> {
+  return Array.from(getAllMonthlyAggregated().entries())
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .slice(-12)
     .map(([key, v]) => {
       const [, mo] = key.split("-");
       return { month: `${Number(mo)}월`, revenue: v.revenue, gp: v.gp };
     });
+}
+
+/**
+ * 회사 전체 YTD 매출/GP — KPI 카드용.
+ */
+export function getCompanyYtdTotals() {
+  const now = new Date();
+  const fiscalStart = `${now.getFullYear()}-01`;
+  const all = getAllMonthlyAggregated();
+  let revenue = 0;
+  let gp = 0;
+  for (const [key, v] of all.entries()) {
+    if (key >= fiscalStart) {
+      revenue += v.revenue;
+      gp += v.gp;
+    }
+  }
+  return {
+    revenue,
+    gp,
+    gpRate: revenue > 0 ? (gp / revenue) * 100 : 0,
+  };
+}
+
+/**
+ * 국가별 12개월 매출 + YoY — CEO 대시보드 막대 차트용.
+ */
+export function getCompanyCountryRevenue(): Array<{
+  countryCode: string;
+  countryName: string;
+  flag: string;
+  revenue: number;
+  delta: number;
+}> {
+  const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
+    KR: { name: "한국",       flag: "🇰🇷" },
+    JP: { name: "일본",       flag: "🇯🇵" },
+    VN: { name: "베트남",     flag: "🇻🇳" },
+    TH: { name: "태국",       flag: "🇹🇭" },
+    SG: { name: "싱가포르",   flag: "🇸🇬" },
+    TW: { name: "대만",       flag: "🇹🇼" },
+    ID: { name: "인도네시아", flag: "🇮🇩" },
+    CN: { name: "중국",       flag: "🇨🇳" },
+    PH: { name: "필리핀",     flag: "🇵🇭" },
+    MY: { name: "말레이시아", flag: "🇲🇾" },
+  };
+
+  // 국가별 최근 12개월 / 직전 12개월 합산
+  const recent: Record<string, number> = {};
+  const previous: Record<string, number> = {};
+
+  for (const account of MOCK_ACCOUNTS) {
+    const series = getAccountMonthlyRevenue(account);
+    if (series.length < 24) continue;
+    const last12Sum = series.slice(-12).reduce((s, m) => s + m.revenue, 0);
+    const prev12Sum = series.slice(0, 12).reduce((s, m) => s + m.revenue, 0);
+    recent[account.countryCode] = (recent[account.countryCode] ?? 0) + last12Sum;
+    previous[account.countryCode] = (previous[account.countryCode] ?? 0) + prev12Sum;
+  }
+
+  return Object.entries(recent)
+    .filter(([, rev]) => rev > 0)
+    .map(([code, revenue]) => ({
+      countryCode: code,
+      countryName: COUNTRY_NAMES[code]?.name ?? code,
+      flag: COUNTRY_NAMES[code]?.flag ?? "",
+      revenue,
+      delta:
+        (previous[code] ?? 0) > 0
+          ? Math.round(((revenue - previous[code]) / previous[code]) * 100)
+          : 0,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+}
+
+/**
+ * TOP N 핵심 고객사 — YTD 매출 기준 (계산값).
+ */
+export function getTopAccounts(limit = 15): Array<{
+  id: string;
+  name: string;
+  countryFlag: string;
+  revenueYtd: number;
+  gpYtd: number;
+  trend: "up" | "down" | "flat";
+}> {
+  return MOCK_ACCOUNTS
+    .filter((a) => a.totalRevenueYtd > 0)
+    .map((a) => {
+      const yoy = getAccountYoY(a);
+      return {
+        id: a.id,
+        name: a.name,
+        countryFlag: countryFlag(a.countryCode),
+        revenueYtd: a.totalRevenueYtd,
+        gpYtd: a.totalGpYtd,
+        trend: (yoy >= 5 ? "up" : yoy <= -5 ? "down" : "flat") as "up" | "down" | "flat",
+      };
+    })
+    .sort((a, b) => b.revenueYtd - a.revenueYtd)
+    .slice(0, limit);
+}
+
+function countryFlag(code: string): string {
+  const map: Record<string, string> = {
+    KR: "🇰🇷", JP: "🇯🇵", VN: "🇻🇳", TH: "🇹🇭",
+    SG: "🇸🇬", TW: "🇹🇼", ID: "🇮🇩", CN: "🇨🇳",
+    PH: "🇵🇭", MY: "🇲🇾",
+  };
+  return map[code] ?? "";
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,27 +9,24 @@ import { Progress } from "@/components/ui/progress";
 import { Settings } from "lucide-react";
 import { KpiCardWidget } from "@/components/dashboard/KpiCard";
 import { MOCK_KPI_MANAGER } from "@/lib/mock/kpi";
+import { computeIncentive } from "@/lib/kpi/incentive";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
 
-const SIM_BREAKDOWN = [
-  { code: "REVENUE",      weight: 35, target: 300_000_000, actual: 396_000_000, achievement: 132, threshold: 80, ratePer1Pct: 30_000, incentive: 1_560_000 },
-  { code: "GP",           weight: 25, target: 45_000_000,  actual: 60_000_000,  achievement: 133, threshold: 80, ratePer1Pct: 30_000, incentive: 1_590_000 },
-  { code: "NEW_ACCOUNTS", weight: 10, target: 4,           actual: 5,           achievement: 125, threshold: 80, ratePer1Pct: 30_000, incentive: 1_350_000 },
-  { code: "MEETINGS",     weight: 10, target: 30,          actual: 38,          achievement: 127, threshold: 80, ratePer1Pct: 30_000, incentive: 1_410_000 },
-  { code: "PROPOSALS",    weight: 10, target: 12,          actual: 14,          achievement: 117, threshold: 80, ratePer1Pct: 30_000, incentive: 1_110_000 },
-  { code: "CONTRACTS",    weight: 10, target: 6,           actual: 7,           achievement: 117, threshold: 80, ratePer1Pct: 30_000, incentive: 1_110_000 },
-];
+// 현재 매니저 (mock: 김민수)
+const CURRENT_USER_ID = "user-mock-1";
+const CURRENT_USER_NAME = "김민수";
 
 export default function KpiPage() {
-  const totalIncentive = SIM_BREAKDOWN.reduce((s, b) => s + b.incentive, 0);
-  const weightedAvg = SIM_BREAKDOWN.reduce((s, b) => s + (b.achievement * b.weight) / 100, 0);
+  const sim = useMemo(() => computeIncentive(CURRENT_USER_ID, CURRENT_USER_NAME), []);
 
   return (
     <div className="space-y-5">
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">KPI · 인센티브</h1>
-          <p className="text-sm text-muted-foreground mt-1">2026 Q2 · 분기말 추정값</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            2026 Q2 · {sim.ownerName} · 자동 집계 (Mock)
+          </p>
         </div>
         <Button asChild variant="outline" size="sm">
           <Link href="/kpi/incentive-rules">
@@ -37,22 +35,22 @@ export default function KpiPage() {
         </Button>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {MOCK_KPI_MANAGER.map((card) => (
           <KpiCardWidget key={card.code} card={card} />
         ))}
       </div>
 
-      {/* Incentive Simulator */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>💰 인센티브 미리보기 (Q2 추정)</CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle>💰 인센티브 미리보기 (Q2 추정 · 실시간)</CardTitle>
             <div className="text-right">
-              <div className="text-2xl font-bold tabular-nums">{formatCurrency(totalIncentive)}</div>
-              <Badge variant={weightedAvg >= 100 ? "success" : weightedAvg >= 70 ? "warning" : "destructive"}>
-                가중평균 {formatPercent(weightedAvg, 1)}
+              <div className="text-2xl font-bold tabular-nums">{formatCurrency(sim.totalIncentive)}</div>
+              <Badge
+                variant={sim.status === "ok" ? "success" : sim.status === "warn" ? "warning" : "destructive"}
+              >
+                가중평균 {formatPercent(sim.weightedAvg, 1)}
               </Badge>
             </div>
           </div>
@@ -72,27 +70,32 @@ export default function KpiPage() {
                 </tr>
               </thead>
               <tbody>
-                {SIM_BREAKDOWN.map((b) => {
-                  const overshoot = Math.max(0, b.achievement - b.threshold);
-                  const isCurrency = b.code === "REVENUE" || b.code === "GP";
+                {sim.rows.map((r) => {
+                  const overshoot = Math.max(0, r.achievement - r.threshold);
+                  const isCurrency = r.unit === "KRW";
                   return (
-                    <tr key={b.code} className="border-b last:border-0">
-                      <td className="py-2.5 px-2 font-medium">{b.code}</td>
-                      <td className="py-2.5 px-2 text-right tabular-nums">{b.weight}%</td>
+                    <tr key={r.code} className="border-b last:border-0">
+                      <td className="py-2.5 px-2 font-medium">{r.label}</td>
+                      <td className="py-2.5 px-2 text-right tabular-nums">{r.weight}%</td>
                       <td className="py-2.5 px-2 text-right tabular-nums">
-                        {isCurrency ? formatCurrency(b.target) : b.target}
+                        {isCurrency ? formatCurrency(r.target) : r.target}
                       </td>
                       <td className="py-2.5 px-2 text-right tabular-nums">
-                        {isCurrency ? formatCurrency(b.actual) : b.actual}
+                        {isCurrency ? formatCurrency(r.actual) : r.actual}
                       </td>
                       <td className="py-2.5 px-2 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Progress value={Math.min(b.achievement, 200) / 2} className="w-16 h-1.5" />
-                          <span className="font-medium tabular-nums w-12 text-right">{b.achievement}%</span>
+                          <Progress value={Math.min(r.achievement, 200) / 2} className="w-16 h-1.5" />
+                          <span className="font-medium tabular-nums w-12 text-right">{r.achievement}%</span>
                         </div>
                       </td>
                       <td className="py-2.5 px-2 text-right tabular-nums">{overshoot}%p</td>
-                      <td className="py-2.5 px-2 text-right tabular-nums font-medium">{formatCurrency(b.incentive)}</td>
+                      <td className="py-2.5 px-2 text-right tabular-nums font-medium">
+                        {formatCurrency(r.incentive)}
+                        {r.cap !== undefined && r.incentive >= r.cap && (
+                          <span className="text-xs text-muted-foreground ml-1">(cap)</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -100,13 +103,16 @@ export default function KpiPage() {
               <tfoot>
                 <tr className="bg-muted/40">
                   <td colSpan={6} className="py-2.5 px-2 text-right font-semibold">합계</td>
-                  <td className="py-2.5 px-2 text-right font-bold tabular-nums">{formatCurrency(totalIncentive)}</td>
+                  <td className="py-2.5 px-2 text-right font-bold tabular-nums">
+                    {formatCurrency(sim.totalIncentive)}
+                  </td>
                 </tr>
               </tfoot>
             </table>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
             ※ MVP 인센티브 공식: <code className="bg-muted px-1 rounded">max(0, 달성률 − 임계치) × 단가</code>.
+            실적은 {sim.ownerName}님의 WON 딜 · 활동 기록에서 자동 집계.
             가중평균 70% 미만 시 지급 0, BRIEF 제출률 50% 미만 시 50% 차감 (페널티는 v1.5).
           </p>
         </CardContent>
