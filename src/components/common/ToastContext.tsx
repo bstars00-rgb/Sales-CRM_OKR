@@ -31,6 +31,8 @@ interface ToastContextValue {
 
 const ToastCtx = createContext<ToastContextValue | null>(null);
 
+const MAX_VISIBLE = 4;
+
 export function ToastRoot({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
 
@@ -40,16 +42,23 @@ export function ToastRoot({ children }: { children: React.ReactNode }) {
 
   const show = useCallback((input: ShowToastInput) => {
     const id = Math.random().toString(36).slice(2);
-    setItems((prev) => [
-      ...prev,
-      {
-        id,
-        title: input.title,
-        description: input.description,
-        variant: input.variant ?? "default",
-        duration: input.duration ?? 4000,
-      },
-    ]);
+    setItems((prev) => {
+      const next = [
+        ...prev,
+        {
+          id,
+          title: input.title,
+          description: input.description,
+          variant: input.variant ?? "default",
+          duration: input.duration ?? 4000,
+        },
+      ];
+      // 최대 MAX_VISIBLE개만 유지 — 초과 시 가장 오래된 것 제거
+      if (next.length > MAX_VISIBLE) {
+        return next.slice(next.length - MAX_VISIBLE);
+      }
+      return next;
+    });
   }, []);
 
   const value: ToastContextValue = {

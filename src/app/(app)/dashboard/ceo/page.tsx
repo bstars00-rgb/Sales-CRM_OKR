@@ -13,6 +13,7 @@ import {
   getCompanyRevenueTrend, getCompanyCountryRevenue, getCompanyYtdTotals, getTopAccounts,
 } from "@/lib/mock/revenue";
 import { getCompanyBrief } from "@/lib/brief/aggregate";
+import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
@@ -27,22 +28,23 @@ const CountryBarChart = dynamic(
 );
 
 export default function CeoDashboardPage() {
-  const trend = useMemo(getCompanyRevenueTrend, []);
-  const countries = useMemo(getCompanyCountryRevenue, []);
-  const ytd = useMemo(getCompanyYtdTotals, []);
-  const topAccounts = useMemo(() => getTopAccounts(15), []);
-  const brief = useMemo(getCompanyBrief, []);
+  const version = useSalesVersion();
+  const trend = useMemo(getCompanyRevenueTrend, [version]);
+  const countries = useMemo(getCompanyCountryRevenue, [version]);
+  const ytd = useMemo(getCompanyYtdTotals, [version]);
+  const topAccounts = useMemo(() => getTopAccounts(15), [version]);
+  const brief = useMemo(getCompanyBrief, [version]);
 
   const apiLive = useMemo(
     () => MOCK_DEALS.filter((d) => d.dealType === "API_INTEGRATION" && d.outcome === "WON").length + 18,
-    []
+    [version]
   );
   const newAccounts = useMemo(
     () => MOCK_ACCOUNTS.filter((a) => {
       const days = (Date.now() - new Date(a.firstContactDate).getTime()) / 86400000;
       return days < 90 && a.grade !== "DORMANT" && a.grade !== "LOW_POTENTIAL";
     }).length,
-    []
+    [version]
   );
 
   // Q2 목표 (시뮬레이션) — YTD 기준으로 비례 추정
@@ -89,7 +91,7 @@ export default function CeoDashboardPage() {
     return out
       .sort((a, b) => (a.severity === "HIGH" ? -1 : 1))
       .slice(0, 8);
-  }, []);
+  }, [version]);
 
   return (
     <div className="space-y-6">

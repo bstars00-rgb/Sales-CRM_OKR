@@ -10,13 +10,15 @@ import { GradeBadge, StatusBadge, SegmentBadge, CountryFlag, RiskDot } from "@/c
 import { useActivityWizard } from "@/components/crm/ActivityWizard";
 import { AccountMemoPanel } from "@/components/crm/AccountMemoPanel";
 import { AccountRevenueChart } from "@/components/crm/AccountRevenueChart";
+import { InlineActivityForm } from "@/components/crm/InlineActivityForm";
+import { useSalesVersion } from "@/lib/store/sales-store";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_ACTIVITIES } from "@/lib/mock/activities";
 import { getAccountTotals, getAccountYoY } from "@/lib/mock/revenue";
 import { formatCurrency, relativeTime, formatPercent } from "@/lib/utils/format";
-import { ArrowLeft, Star, Plus, Phone, Mail, MessageCircle, FileText, Calendar, BarChart3, StickyNote } from "lucide-react";
+import { ArrowLeft, Star, Plus, Phone, Mail, MessageCircle, Calendar, BarChart3 } from "lucide-react";
 
 const ACTIVITY_ICON: Record<string, string> = {
   CALL: "📞", MEETING: "📅", EMAIL_LOG: "✉", MESSENGER: "💬",
@@ -26,8 +28,10 @@ const ACTIVITY_ICON: Record<string, string> = {
 
 export function AccountDetailClient({ id }: { id: string }) {
   const wizard = useActivityWizard();
+  const version = useSalesVersion();
   const account = MOCK_ACCOUNTS.find((a) => a.id === id);
   if (!account) notFound();
+  void version;
 
   const contacts = MOCK_CONTACTS.filter((c) => c.accountId === account.id);
   const deals = MOCK_DEALS.filter((d) => d.accountId === account.id);
@@ -274,27 +278,19 @@ export function AccountDetailClient({ id }: { id: string }) {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-base">⚡ 빠른 활동 기록</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-3 gap-2">
-              {[
-                { label: "통화", icon: Phone, channel: "CALL" as const },
-                { label: "미팅", icon: Calendar, channel: "MEETING" as const },
-                { label: "이메일", icon: Mail, channel: "EMAIL" as const },
-                { label: "메신저", icon: MessageCircle, channel: "MESSENGER" as const },
-                { label: "제안", icon: FileText, channel: "PROPOSAL" as const },
-                { label: "메모", icon: StickyNote, channel: "NOTE" as const },
-              ].map(({ label, icon: Icon, channel }) => (
-                <Button
-                  key={label}
-                  variant="outline"
-                  size="sm"
-                  className="flex-col h-16 gap-1"
-                  onClick={() => wizard.open({ accountId: account.id, accountName: account.name, defaultChannel: channel })}
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <span>⚡ 빠른 활동 기록</span>
+                <button
+                  onClick={() => wizard.open({ accountId: account.id, accountName: account.name })}
+                  className="text-xs text-muted-foreground hover:text-foreground"
                 >
-                  <Icon className="h-4 w-4" />
-                  <span className="text-xs">{label}</span>
-                </Button>
-              ))}
+                  전체 폼 →
+                </button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <InlineActivityForm accountId={account.id} accountName={account.name} />
             </CardContent>
           </Card>
         </aside>

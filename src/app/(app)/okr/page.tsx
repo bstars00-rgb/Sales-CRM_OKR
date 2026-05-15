@@ -47,7 +47,7 @@ export default function OkrPage() {
 
       <div className="space-y-4">
         {objectives.map((o) => (
-          <Card key={o.id}>
+          <Card key={o.id} className="hover:shadow-md hover:border-primary/30 transition-all">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -58,7 +58,7 @@ export default function OkrPage() {
                   </div>
                   <CardTitle className="flex items-start gap-2">
                     <Target className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                    <span>{o.title}</span>
+                    <Link href={`/okr/${o.id}`} className="hover:underline">{o.title}</Link>
                   </CardTitle>
                 </div>
                 <div className="text-right shrink-0">
