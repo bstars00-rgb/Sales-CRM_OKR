@@ -9,10 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GradeBadge, StatusBadge, SegmentBadge, CountryFlag, RiskDot } from "@/components/crm/AccountBadges";
 import { useActivityWizard } from "@/components/crm/ActivityWizard";
 import { AccountMemoPanel } from "@/components/crm/AccountMemoPanel";
+import { AccountRevenueChart } from "@/components/crm/AccountRevenueChart";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_ACTIVITIES } from "@/lib/mock/activities";
+import { getAccountTotals, getAccountYoY } from "@/lib/mock/revenue";
 import { formatCurrency, relativeTime, formatPercent } from "@/lib/utils/format";
 import { ArrowLeft, Star, Plus, Phone, Mail, MessageCircle, FileText, Calendar, BarChart3, StickyNote } from "lucide-react";
 
@@ -103,14 +105,44 @@ export function AccountDetailClient({ id }: { id: string }) {
 
             <TabsContent value="overview" className="space-y-4">
               <Card>
-                <CardHeader><CardTitle>📈 매출 요약</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Stat label="YTD 거래액" value={formatCurrency(account.totalRevenueYtd)} />
-                  <Stat label="YTD GP"
-                        value={formatCurrency(account.totalGpYtd)}
-                        sub={account.totalRevenueYtd > 0 ? formatPercent((account.totalGpYtd / account.totalRevenueYtd) * 100, 1) + " GP율" : ""} />
-                  <Stat label="3M 거래액" value={formatCurrency(account.revenue3M)} />
-                  <Stat label="3M GP" value={formatCurrency(account.gp3M)} />
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between flex-wrap gap-2">
+                    <span>📈 매출 요약</span>
+                    {account.totalRevenueYtd > 0 && (() => {
+                      const yoy = getAccountYoY(account);
+                      return yoy !== 0 ? (
+                        <span className={`text-sm font-medium ${yoy >= 0 ? "text-success" : "text-destructive"}`}>
+                          YoY {yoy >= 0 ? "▲" : "▼"} {Math.abs(yoy).toFixed(0)}%
+                        </span>
+                      ) : null;
+                    })()}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Stat label="YTD 거래액" value={formatCurrency(account.totalRevenueYtd)} />
+                    <Stat label="YTD GP"
+                          value={formatCurrency(account.totalGpYtd)}
+                          sub={account.totalRevenueYtd > 0 ? formatPercent((account.totalGpYtd / account.totalRevenueYtd) * 100, 1) + " GP율" : ""} />
+                    <Stat label="3M 거래액" value={formatCurrency(account.revenue3M)} />
+                    <Stat label="3M GP" value={formatCurrency(account.gp3M)} />
+                  </div>
+                  {account.totalRevenueYtd > 0 && (() => {
+                    const totals = getAccountTotals(account);
+                    return (
+                      <>
+                        <div className="grid grid-cols-3 gap-4 pt-3 border-t">
+                          <Stat label="24M 누적" value={formatCurrency(totals.revenue)} sub="2년 합산" />
+                          <Stat label="Room Night" value={totals.roomNights.toLocaleString()} sub="객실박" />
+                          <Stat label="ADR" value={formatCurrency(totals.adr)} sub="평균 단가" />
+                        </div>
+                        <div className="pt-3 border-t">
+                          <div className="text-xs text-muted-foreground mb-2">24개월 매출 추이</div>
+                          <AccountRevenueChart account={account} />
+                        </div>
+                      </>
+                    );
+                  })()}
                 </CardContent>
               </Card>
 
