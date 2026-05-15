@@ -11,12 +11,13 @@ import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
+import { MOCK_OBJECTIVES } from "@/lib/mock/kpi";
 import { useSalesVersion } from "@/lib/store/sales-store";
 import { relativeTime } from "@/lib/utils/format";
 import { Search, Building2, Briefcase, User, LayoutDashboard, Target, FileText, ListTodo, Calendar, CheckSquare } from "lucide-react";
 
 interface SearchResult {
-  kind: "account" | "deal" | "contact" | "activity" | "task" | "page";
+  kind: "account" | "deal" | "contact" | "activity" | "task" | "okr" | "page";
   id: string;
   title: string;
   subtitle?: string;
@@ -89,6 +90,14 @@ export function CommandK() {
         icon: CheckSquare,
         href: "/tasks",
       })),
+      ...MOCK_OBJECTIVES.map((o): SearchResult => ({
+        kind: "okr",
+        id: o.id,
+        title: o.title,
+        subtitle: `${o.ownerKind === "COMPANY" ? "회사" : o.ownerKind === "TEAM" ? "팀" : "개인"} · ${o.ownerName} · ${o.periodLabel} · ${o.progressPct}%`,
+        icon: Target,
+        href: `/okr/${o.id}`,
+      })),
       ...PAGES,
     ];
     if (!q) return PAGES.slice(0, 6);
@@ -135,7 +144,7 @@ export function CommandK() {
 
   const KIND_LABEL: Record<SearchResult["kind"], string> = {
     account: "고객사", deal: "딜", contact: "담당자",
-    activity: "활동", task: "태스크", page: "페이지",
+    activity: "활동", task: "태스크", okr: "OKR", page: "페이지",
   };
 
   return (

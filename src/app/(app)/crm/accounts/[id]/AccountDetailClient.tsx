@@ -12,6 +12,7 @@ import { AccountMemoPanel } from "@/components/crm/AccountMemoPanel";
 import { AccountRevenueChart } from "@/components/crm/AccountRevenueChart";
 import { InlineActivityForm } from "@/components/crm/InlineActivityForm";
 import { useSalesVersion } from "@/lib/store/sales-store";
+import { cn } from "@/lib/utils/cn";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
@@ -214,26 +215,50 @@ export function AccountDetailClient({ id }: { id: string }) {
 
             <TabsContent value="activities">
               <div className="space-y-3">
-                {activities.map((a) => (
-                  <div key={a.id} className="flex gap-3 border-b pb-3 last:border-0">
+                {activities
+                  .slice()
+                  .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+                  .map((a) => {
+                  const ageMs = Date.now() - new Date(a.occurredAt).getTime();
+                  const isRecent = ageMs < 60_000; // 1분 이내
+                  return (
+                  <div
+                    key={a.id}
+                    className={cn(
+                      "flex gap-3 border-b pb-3 last:border-0 rounded-md transition-colors",
+                      isRecent && "bg-success/5 border-success/30 px-2 py-2"
+                    )}
+                  >
                     <div className="text-xl">{ACTIVITY_ICON[a.activityType] ?? "•"}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm">
+                      <div className="text-sm flex items-center gap-1.5 flex-wrap">
                         <span className="font-medium">{a.userName}</span>
-                        <span className="text-muted-foreground"> · </span>
-                        <span className="text-muted-foreground">{relativeTime(a.occurredAt)}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">{isRecent ? "방금" : relativeTime(a.occurredAt)}</span>
                         {a.durationMinutes && (
-                          <span className="text-muted-foreground"> · {a.durationMinutes}분</span>
+                          <span className="text-muted-foreground">· {a.durationMinutes}분</span>
+                        )}
+                        {isRecent && (
+                          <Badge variant="success" className="text-[10px] ml-auto">NEW</Badge>
                         )}
                       </div>
                       {a.subject && <div className="text-sm font-medium mt-0.5">{a.subject}</div>}
                       {a.content && <div className="text-sm text-muted-foreground mt-1">{a.content}</div>}
+                      {a.outcome && (
+                        <div className="text-xs mt-1.5">결과: <span className="font-medium">{a.outcome}</span></div>
+                      )}
                       {a.nextAction && (
                         <div className="text-xs mt-1.5 text-primary">▶ 다음 액션: {a.nextAction}</div>
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
+                {activities.length === 0 && (
+                  <div className="text-sm text-muted-foreground py-8 text-center">
+                    아직 활동 기록이 없습니다. 우측 [⚡ 빠른 활동 기록]을 사용해보세요.
+                  </div>
+                )}
               </div>
             </TabsContent>
 

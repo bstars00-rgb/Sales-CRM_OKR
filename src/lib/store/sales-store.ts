@@ -66,6 +66,25 @@ export function toggleTask(taskId: string): Task | null {
   return t;
 }
 
+export function addTask(input: Omit<Task, "id" | "status"> & { status?: Task["status"] }): Task {
+  const t: Task = {
+    id: `task-new-${Date.now()}`,
+    status: input.status ?? "TODO",
+    ...input,
+  };
+  MOCK_TASKS.unshift(t);
+  bump();
+  return t;
+}
+
+export function deleteTask(taskId: string): boolean {
+  const idx = MOCK_TASKS.findIndex((x) => x.id === taskId);
+  if (idx < 0) return false;
+  MOCK_TASKS.splice(idx, 1);
+  bump();
+  return true;
+}
+
 // ============================================================
 // Deals — 단계 이동 / Win / Lost
 // ============================================================

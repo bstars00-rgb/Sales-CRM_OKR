@@ -12,8 +12,9 @@ import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
 import { replaceCriticalSix, useSalesVersion } from "@/lib/store/sales-store";
 import { useToast } from "@/components/common/ToastContext";
 import { formatCurrency, formatPercent, relativeTime } from "@/lib/utils/format";
-import { CheckCircle2, Sparkles, Send, Save, Printer, Cloud, Loader2, RefreshCw } from "lucide-react";
+import { CheckCircle2, Sparkles, Send, Save, Printer, Cloud, Loader2, RefreshCw, Target } from "lucide-react";
 import { getNextWeekSuggestions } from "@/lib/okr/next-critical-six";
+import { getObjectivesWithAutoProgress } from "@/lib/okr/auto-progress";
 
 const RECOMMENDED_HIGHLIGHTS = [
   "ABC Travel Q3 패키지 가격 합의 도출 ($94/night)",
@@ -137,6 +138,22 @@ export default function BriefPage() {
             <Block label="Critical 6">
               <Row k="진척" v={`${c6Done}/${MOCK_CRITICAL_6.length}`} />
             </Block>
+            <Block label="OKR 진척 (내 OKR)">
+              {getObjectivesWithAutoProgress()
+                .filter((o) => o.ownerKind === "USER" && o.ownerName === "김민수")
+                .map((o) => (
+                  <div key={o.id} className="space-y-1">
+                    <Row k="Objective" v={`${o.progressPct}%`} />
+                    {o.keyResults.slice(0, 3).map((kr) => (
+                      <Row
+                        key={kr.id}
+                        k={`  ${kr.title.slice(0, 18)}${kr.title.length > 18 ? "…" : ""}`}
+                        v={`${kr.progressPct}%`}
+                      />
+                    ))}
+                  </div>
+                ))}
+            </Block>
             <Block label="Follow-up">
               <Row
                 k="완료율"
@@ -166,6 +183,42 @@ export default function BriefPage() {
             <SaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} />
           </div>
         </div>
+
+        <Section
+          title={<><Target className="inline h-4 w-4 mr-1 text-primary" />🤖 OKR 진척도</>}
+          hint="내 OKR의 자동 진척률 — 매주 보고에 자동 삽입됨"
+        >
+          <Card className="bg-muted/30">
+            <CardContent className="p-4 space-y-3">
+              {getObjectivesWithAutoProgress()
+                .filter((o) => o.ownerKind === "USER" && o.ownerName === "김민수")
+                .map((o) => (
+                  <div key={o.id}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="font-medium">{o.title}</span>
+                      <span className="font-bold tabular-nums">{o.progressPct}%</span>
+                    </div>
+                    <div className="space-y-1">
+                      {o.keyResults.map((kr) => (
+                        <div key={kr.id} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <span className="text-primary">•</span>{kr.title}
+                            {kr.progressSource === "AUTO" && (
+                              <Sparkles className="h-2.5 w-2.5 text-primary inline" />
+                            )}
+                          </span>
+                          <span className={`tabular-nums font-medium ${
+                            kr.progressPct >= 90 ? "text-success" :
+                            kr.progressPct >= 60 ? "text-warning" : "text-destructive"
+                          }`}>{kr.progressPct}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </CardContent>
+          </Card>
+        </Section>
 
         <Section title="✏️ 이번 주 주요 성과" hint="추천 2건이 아래에 자동으로 채워졌습니다. 수정 가능">
           <Recommendations items={RECOMMENDED_HIGHLIGHTS} />
@@ -314,7 +367,7 @@ export default function BriefPage() {
   );
 }
 
-function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+function Section({ title, hint, children }: { title: React.ReactNode; hint?: string; children: React.ReactNode }) {
   return (
     <Card>
       <CardHeader className="pb-3">
