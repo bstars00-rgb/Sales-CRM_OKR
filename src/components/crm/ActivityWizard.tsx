@@ -1,14 +1,37 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/common/ToastContext";
-import { Phone, Calendar, Mail, MessageCircle, FileText, StickyNote } from "lucide-react";
+import { Phone, Calendar, Mail, MessageCircle, FileText, StickyNote, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { addActivity } from "@/lib/store/sales-store";
 import type { ActivityType } from "@/lib/mock/types";
+
+// Web Speech API 타입 (브라우저 native, TS lib에 없음)
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: {
+      isFinal: boolean;
+      [index: number]: { transcript: string };
+    };
+  };
+}
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((e: SpeechRecognitionEvent) => void) | null;
+  onerror: ((e: Event) => void) | null;
+  onend: (() => void) | null;
+}
 
 type Outcome = "POSITIVE" | "NEUTRAL" | "NEGATIVE";
 type Channel = "CALL" | "MEETING" | "EMAIL" | "MESSENGER" | "PROPOSAL" | "NOTE";
@@ -54,11 +77,62 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
   const [nextDue, setNextDue] = useState("");
   const toast = useToast();
 
+  // 음성 받아쓰기 (Web Speech API)
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const [listening, setListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionInstance; webkitSpeechRecognition?: new () => SpeechRecognitionInstance };
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    setVoiceSupported(!!SR);
+  }, []);
+
+  const startVoice = () => {
+    if (typeof window === "undefined") return;
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionInstance; webkitSpeechRecognition?: new () => SpeechRecognitionInstance };
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!SR) {
+      toast.warning("음성 받아쓰기 미지원", "Chrome / Edge 브라우저에서 사용 가능합니다");
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "ko-KR";
+    rec.interimResults = true;
+    rec.continuous = false;
+    let finalText = "";
+    rec.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) finalText += r[0].transcript;
+        else interim += r[0].transcript;
+      }
+      setNote((prev) => {
+        // 기존 메모 + final + interim 미리보기
+        const base = prev.length > 0 && !prev.endsWith(finalText) ? prev : "";
+        return (base + finalText + interim).trim();
+      });
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setListening(true);
+  };
+
+  const stopVoice = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
+
   const reset = () => {
     setOutcome(null);
     setNote("");
     setNextAction("");
     setNextDue("");
+    if (listening) stopVoice();
   };
 
   const open = useCallback((input: OpenInput = {}) => {
@@ -125,7 +199,7 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
           if (!o) reset();
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-sm:fixed max-sm:inset-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:max-w-none max-sm:rounded-none max-sm:h-screen max-sm:overflow-y-auto">
           <DialogHeader>
             <DialogTitle>활동 기록</DialogTitle>
             {(ctx.accountName || ctx.dealName) && (
@@ -176,11 +250,28 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
             </div>
 
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">한 줄 메모</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center justify-between">
+                <span>한 줄 메모</span>
+                {voiceSupported && (
+                  <button
+                    onClick={listening ? stopVoice : startVoice}
+                    className={cn(
+                      "inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
+                      listening
+                        ? "bg-destructive/10 text-destructive animate-pulse"
+                        : "bg-primary/10 text-primary hover:bg-primary/20"
+                    )}
+                  >
+                    {listening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                    {listening ? "녹음 중지" : "음성 입력"}
+                  </button>
+                )}
+              </div>
               <Input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="결과·요점 한 줄"
+                placeholder={listening ? "🎙 듣고 있습니다..." : "결과·요점 한 줄"}
+                className={listening ? "border-destructive/50" : ""}
               />
             </div>
 

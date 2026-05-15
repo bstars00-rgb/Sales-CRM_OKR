@@ -10,10 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_CONTACTS } from "@/lib/mock/contacts";
-import { Search, Building2, Briefcase, User, LayoutDashboard, Target, FileText, ListTodo } from "lucide-react";
+import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
+import { useSalesVersion } from "@/lib/store/sales-store";
+import { relativeTime } from "@/lib/utils/format";
+import { Search, Building2, Briefcase, User, LayoutDashboard, Target, FileText, ListTodo, Calendar, CheckSquare } from "lucide-react";
 
 interface SearchResult {
-  kind: "account" | "deal" | "contact" | "page";
+  kind: "account" | "deal" | "contact" | "activity" | "task" | "page";
   id: string;
   title: string;
   subtitle?: string;
@@ -37,12 +40,14 @@ const PAGES: SearchResult[] = [
 
 export function CommandK() {
   const router = useRouter();
+  const version = useSalesVersion();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
   const results = useMemo<SearchResult[]>(() => {
     const q = query.trim().toLowerCase();
+    void version;
     const all: SearchResult[] = [
       ...MOCK_ACCOUNTS.map((a): SearchResult => ({
         kind: "account",
@@ -56,7 +61,7 @@ export function CommandK() {
         kind: "deal",
         id: d.id,
         title: d.name,
-        subtitle: `${d.accountName} · ${d.stageName}`,
+        subtitle: `${d.accountName} · ${d.stageName}${d.outcome !== "OPEN" ? ` · ${d.outcome}` : ""}`,
         icon: Briefcase,
         href: `/crm/deals/${d.id}`,
       })),
@@ -64,9 +69,25 @@ export function CommandK() {
         kind: "contact",
         id: c.id,
         title: `${c.firstName} ${c.lastName ?? ""}`.trim(),
-        subtitle: c.title ?? c.email ?? "",
+        subtitle: `${c.title ?? ""}${c.email ? ` · ${c.email}` : ""}`,
         icon: User,
         href: `/crm/accounts/${c.accountId}`,
+      })),
+      ...MOCK_ACTIVITIES.slice(0, 30).map((a): SearchResult => ({
+        kind: "activity",
+        id: a.id,
+        title: a.subject ?? a.content?.slice(0, 60) ?? `${a.activityType} 활동`,
+        subtitle: `${a.activityType} · ${a.accountName ?? a.dealName ?? ""} · ${relativeTime(a.occurredAt)}`,
+        icon: Calendar,
+        href: a.dealId ? `/crm/deals/${a.dealId}` : a.accountId ? `/crm/accounts/${a.accountId}` : "/crm/activities",
+      })),
+      ...MOCK_TASKS.filter((t) => t.status === "TODO").map((t): SearchResult => ({
+        kind: "task",
+        id: t.id,
+        title: t.title,
+        subtitle: `${t.priority}${t.dueAt ? ` · ${new Date(t.dueAt).toLocaleDateString("ko-KR")}` : ""}${t.relatedAccountName ? ` · ${t.relatedAccountName}` : ""}`,
+        icon: CheckSquare,
+        href: "/tasks",
       })),
       ...PAGES,
     ];
@@ -74,8 +95,8 @@ export function CommandK() {
     const filtered = all.filter((r) =>
       [r.title, r.subtitle ?? ""].some((s) => s.toLowerCase().includes(q))
     );
-    return filtered.slice(0, 12);
-  }, [query]);
+    return filtered.slice(0, 15);
+  }, [query, version]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -113,7 +134,8 @@ export function CommandK() {
   };
 
   const KIND_LABEL: Record<SearchResult["kind"], string> = {
-    account: "고객사", deal: "딜", contact: "담당자", page: "페이지",
+    account: "고객사", deal: "딜", contact: "담당자",
+    activity: "활동", task: "태스크", page: "페이지",
   };
 
   return (

@@ -12,7 +12,8 @@ import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
 import { replaceCriticalSix, useSalesVersion } from "@/lib/store/sales-store";
 import { useToast } from "@/components/common/ToastContext";
 import { formatCurrency, formatPercent, relativeTime } from "@/lib/utils/format";
-import { CheckCircle2, Sparkles, Send, Save, Printer, Cloud, Loader2 } from "lucide-react";
+import { CheckCircle2, Sparkles, Send, Save, Printer, Cloud, Loader2, RefreshCw } from "lucide-react";
+import { getNextWeekSuggestions } from "@/lib/okr/next-critical-six";
 
 const RECOMMENDED_HIGHLIGHTS = [
   "ABC Travel Q3 패키지 가격 합의 도출 ($94/night)",
@@ -58,6 +59,19 @@ export default function BriefPage() {
     toast.success(
       `Weekly Brief 제출 완료`,
       `다음주 Critical 6 ${newItems.length}개 자동 생성됨`
+    );
+  };
+
+  const regenerateDraft = () => {
+    // 현재 mock 데이터에서 자동 추천 재계산 → 입력란 채움
+    const suggestions = getNextWeekSuggestions("user-mock-1", 6);
+    const newPlan = suggestions.slice(0, 5).map((s) => s.title).join("\n");
+    const newC6 = suggestions.map((s) => s.title);
+    setNextWeekPlan(newPlan);
+    setC6Items(newC6);
+    toast.success(
+      "초안 재집계 완료",
+      `최신 CRM 데이터로 다음주 액션 ${suggestions.length}개 갱신됨`
     );
   };
 
@@ -144,7 +158,13 @@ export default function BriefPage() {
               <Badge variant="muted">DRAFT</Badge>
             </p>
           </div>
-          <SaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} />
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={regenerateDraft}>
+              <RefreshCw className="h-4 w-4" />
+              초안 재집계
+            </Button>
+            <SaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} />
+          </div>
         </div>
 
         <Section title="✏️ 이번 주 주요 성과" hint="추천 2건이 아래에 자동으로 채워졌습니다. 수정 가능">
