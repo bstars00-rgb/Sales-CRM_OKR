@@ -17,8 +17,14 @@ import { MOCK_DEALS, MOCK_STAGES } from "@/lib/mock/deals";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import { MOCK_ACTIVITIES } from "@/lib/mock/activities";
+import { MOCK_CRITICAL_6 } from "@/lib/mock/kpi";
+import {
+  markDealWon as storeMarkDealWon,
+  markDealLost as storeMarkDealLost,
+  useSalesVersion,
+} from "@/lib/store/sales-store";
 import { formatCurrency, relativeTime, formatPercent } from "@/lib/utils/format";
-import { ArrowLeft, Trophy, X, AlertTriangle, Users, Calendar, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Trophy, X, AlertTriangle, Users, Calendar, CheckCircle2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const ACTIVITY_ICON: Record<string, string> = {
@@ -32,9 +38,12 @@ const WIN_REASONS = ["RELATIONSHIP", "PRICE", "FEATURE", "TIMING", "REFERRAL", "
 export function DealDetailClient({ id }: { id: string }) {
   const wizard = useActivityWizard();
   const toast = useToast();
+  const version = useSalesVersion();
   const initialDeal = MOCK_DEALS.find((d) => d.id === id);
   if (!initialDeal) notFound();
-  const [deal, setDeal] = useState(initialDeal);
+  // Re-fetch deal whenever store version changes (store mutates the array in place)
+  const deal = MOCK_DEALS.find((d) => d.id === id)!;
+  void version; // dependency hook
   const [winOpen, setWinOpen] = useState(false);
   const [lostOpen, setLostOpen] = useState(false);
   const [reasonCode, setReasonCode] = useState("");
@@ -50,15 +59,18 @@ export function DealDetailClient({ id }: { id: string }) {
   const isOpen = deal.outcome === "OPEN";
 
   const onMarkWon = () => {
-    setDeal((d) => ({ ...d, outcome: "WON", probabilityPct: 100, stageId: "stg-9", stageName: "Won" }));
+    storeMarkDealWon(deal.id, reasonCode);
     setWinOpen(false);
     setReasonCode("");
     setReasonNote("");
-    toast.success("Deal Won 🎉", `${deal.name}을 성공으로 처리했습니다`);
+    // 연결된 Critical 6가 자동 done 처리됐는지 확인
+    const linkedC6 = MOCK_CRITICAL_6.filter((c) => c.linkedDealId === deal.id);
+    const c6Note = linkedC6.length > 0 ? ` · Critical 6 ${linkedC6.length}건 자동 완료` : "";
+    toast.success("Deal Won 🎉", `${deal.name}을 성공으로 처리했습니다${c6Note}`);
   };
 
   const onMarkLost = () => {
-    setDeal((d) => ({ ...d, outcome: "LOST", probabilityPct: 0, stageId: "stg-10", stageName: "Lost" }));
+    storeMarkDealLost(deal.id, reasonCode);
     setLostOpen(false);
     setReasonCode("");
     setReasonNote("");
@@ -186,7 +198,7 @@ export function DealDetailClient({ id }: { id: string }) {
                 variant="outline"
                 size="sm"
                 className="w-full mt-3"
-                onClick={() => wizard.open({ accountName: deal.accountName, dealName: deal.name })}
+                onClick={() => wizard.open({ accountId: deal.accountId, accountName: deal.accountName, dealId: deal.id, dealName: deal.name })}
               >
                 활동 기록하기
               </Button>

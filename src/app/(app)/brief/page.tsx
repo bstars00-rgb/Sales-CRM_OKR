@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { MOCK_CRITICAL_6, MOCK_KPI_MANAGER } from "@/lib/mock/kpi";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
+import { replaceCriticalSix, useSalesVersion } from "@/lib/store/sales-store";
+import { useToast } from "@/components/common/ToastContext";
 import { formatCurrency, formatPercent, relativeTime } from "@/lib/utils/format";
 import { CheckCircle2, Sparkles, Send, Save, Printer, Cloud, Loader2 } from "lucide-react";
 
@@ -34,10 +36,32 @@ const AUTO_ISSUES = [
 type SaveStatus = "idle" | "saving" | "saved";
 
 export default function BriefPage() {
+  const version = useSalesVersion();
+  const toast = useToast();
   const [highlights, setHighlights] = useState(RECOMMENDED_HIGHLIGHTS.join("\n"));
   const [issues, setIssues] = useState("");
   const [nextWeekPlan, setNextWeekPlan] = useState(RECOMMENDED_ACTIONS.slice(0, 5).join("\n"));
   const [c6Items, setC6Items] = useState<string[]>(RECOMMENDED_ACTIONS.slice(0, 6));
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    // 다음주 Critical 6로 교체
+    const newItems = c6Items
+      .filter((t) => t.trim().length > 0)
+      .map((title) => ({ title, done: false }));
+    if (newItems.length === 0) {
+      toast.warning("다음주 Critical 6 비어있음", "최소 1개 이상 입력해주세요");
+      return;
+    }
+    replaceCriticalSix(newItems);
+    setSubmitted(true);
+    toast.success(
+      `Weekly Brief 제출 완료`,
+      `다음주 Critical 6 ${newItems.length}개 자동 생성됨`
+    );
+  };
+
+  void version;
 
   // 자동 저장 indicator — 입력 후 1.5초 debounce
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -255,9 +279,9 @@ export default function BriefPage() {
                 <Printer className="h-4 w-4" />
                 인쇄 / PDF 저장
               </Button>
-              <Button className="w-full">
+              <Button className="w-full" onClick={handleSubmit} disabled={submitted}>
                 <Send className="h-4 w-4" />
-                제출하기
+                {submitted ? "제출 완료" : "제출하기"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">

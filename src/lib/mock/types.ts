@@ -81,6 +81,8 @@ export interface Deal {
   countryCode: string;
   grade: AccountGrade;
   blockers?: { title: string; severity: "LOW" | "MID" | "HIGH" }[];
+  winReasonCode?: string;
+  lostReasonCode?: string;
 }
 
 export interface PipelineStage {
@@ -122,6 +124,7 @@ export interface Task {
   priority: "LOW" | "MED" | "HIGH";
   status: "TODO" | "DOING" | "DONE" | "CANCELLED";
   channel?: "CALL" | "EMAIL" | "MEETING" | "MESSENGER";
+  completedAt?: string;
 }
 
 export interface KpiCard {

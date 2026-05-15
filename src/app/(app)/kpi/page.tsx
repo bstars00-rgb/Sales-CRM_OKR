@@ -10,6 +10,7 @@ import { Settings } from "lucide-react";
 import { KpiCardWidget } from "@/components/dashboard/KpiCard";
 import { MOCK_KPI_MANAGER } from "@/lib/mock/kpi";
 import { computeIncentive } from "@/lib/kpi/incentive";
+import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
 
 // 현재 매니저 (mock: 김민수)
@@ -17,7 +18,8 @@ const CURRENT_USER_ID = "user-mock-1";
 const CURRENT_USER_NAME = "김민수";
 
 export default function KpiPage() {
-  const sim = useMemo(() => computeIncentive(CURRENT_USER_ID, CURRENT_USER_NAME), []);
+  const version = useSalesVersion();
+  const sim = useMemo(() => computeIncentive(CURRENT_USER_ID, CURRENT_USER_NAME), [version]);
 
   return (
     <div className="space-y-5">

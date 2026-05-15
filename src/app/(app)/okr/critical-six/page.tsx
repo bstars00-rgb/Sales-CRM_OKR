@@ -6,9 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/common/ToastContext";
-import { CheckCircle2, Circle, Sparkles, Plus, Check, ArrowRight } from "lucide-react";
+import { CheckCircle2, Circle, Sparkles, Check, ArrowRight } from "lucide-react";
 import { MOCK_CRITICAL_6 } from "@/lib/mock/kpi";
 import { getNextWeekSuggestions } from "@/lib/okr/next-critical-six";
+import {
+  toggleCriticalSix, replaceCriticalSix, useSalesVersion,
+} from "@/lib/store/sales-store";
 import { cn } from "@/lib/utils/cn";
 
 const SOURCE_BADGE: Record<string, { label: string; variant: "destructive" | "warning" | "default" | "secondary" | "muted" }> = {
@@ -21,16 +24,18 @@ const SOURCE_BADGE: Record<string, { label: string; variant: "destructive" | "wa
 };
 
 export default function CriticalSixPage() {
-  const [items, setItems] = useState(MOCK_CRITICAL_6);
+  const version = useSalesVersion();
+  const items = MOCK_CRITICAL_6;
+  void version;
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const toast = useToast();
   const done = items.filter((i) => i.done).length;
   const week = currentIsoWeek();
 
-  const suggestions = useMemo(() => getNextWeekSuggestions("user-mock-1", 8), []);
+  const suggestions = useMemo(() => getNextWeekSuggestions("user-mock-1", 8), [version]);
 
   const toggle = (idx: number) => {
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, done: !it.done } : it)));
+    toggleCriticalSix(idx);
   };
 
   const toggleSelect = (idx: number) => {
@@ -47,6 +52,19 @@ export default function CriticalSixPage() {
       toast.warning("최소 4개 권장", "다음주 Critical 6는 4-6개 선정이 권장됩니다.");
       return;
     }
+    // 다음주 Critical 6로 교체
+    const newItems = Array.from(selected).map((idx) => {
+      const s = suggestions[idx];
+      return {
+        title: s.title,
+        linkedDealId: s.source === "STALE_DEAL" || s.source === "OPEN_DEAL_HIGH_VALUE" ? s.linkedRefId : undefined,
+        linkedDealName: s.source === "STALE_DEAL" || s.source === "OPEN_DEAL_HIGH_VALUE" ? s.linkedRefName : undefined,
+        by: s.by,
+        done: false,
+      };
+    });
+    replaceCriticalSix(newItems);
+    setSelected(new Set());
     toast.success(
       `다음주 Critical 6 ${selected.size}개 확정`,
       "Brief 작성 시점에 다음주 Critical 6로 전환됩니다."

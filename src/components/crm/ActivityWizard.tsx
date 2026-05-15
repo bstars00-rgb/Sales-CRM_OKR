@@ -7,13 +7,18 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/common/ToastContext";
 import { Phone, Calendar, Mail, MessageCircle, FileText, StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { addActivity } from "@/lib/store/sales-store";
+import type { ActivityType } from "@/lib/mock/types";
 
 type Outcome = "POSITIVE" | "NEUTRAL" | "NEGATIVE";
 type Channel = "CALL" | "MEETING" | "EMAIL" | "MESSENGER" | "PROPOSAL" | "NOTE";
 
 interface OpenInput {
+  accountId?: string;
   accountName?: string;
+  dealId?: string;
   dealName?: string;
+  contactId?: string;
   contactName?: string;
   defaultChannel?: Channel;
 }
@@ -62,16 +67,47 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
     setIsOpen(true);
   }, []);
 
+  const channelToActivityType = (c: Channel): ActivityType => {
+    const map: Record<Channel, ActivityType> = {
+      CALL: "CALL", MEETING: "MEETING", EMAIL: "EMAIL_LOG",
+      MESSENGER: "MESSENGER", PROPOSAL: "PROPOSAL_SENT", NOTE: "NOTE",
+    };
+    return map[c];
+  };
+
   const handleSave = (skip = false) => {
     const target = ctx.dealName ?? ctx.accountName ?? ctx.contactName ?? "기록";
+    const channelLabel = CHANNELS.find((c) => c.value === channel)!.label;
+
+    // 실제 store에 활동 기록 — 단, 어떤 대상도 지정 안 됐으면 skip
+    if (ctx.accountId || ctx.dealId || ctx.contactId) {
+      const outcomeText = outcome === "POSITIVE" ? "긍정" : outcome === "NEUTRAL" ? "중립" : outcome === "NEGATIVE" ? "부정" : undefined;
+      addActivity({
+        activityType: channelToActivityType(channel),
+        userId: "user-mock-1",
+        userName: "김민수",
+        accountId: ctx.accountId,
+        accountName: ctx.accountName,
+        dealId: ctx.dealId,
+        dealName: ctx.dealName,
+        contactId: ctx.contactId,
+        contactName: ctx.contactName,
+        durationMinutes: channel === "CALL" || channel === "MEETING" ? 15 : undefined,
+        subject: `${channelLabel} 기록`,
+        content: note || undefined,
+        outcome: outcomeText,
+        nextAction: nextAction || undefined,
+      });
+    }
+
     if (skip || !outcome) {
       toast.show({
-        title: "활동 저장 (건너뜀)",
-        description: `${target} — 추가 정보 없이 기록`,
+        title: "활동 저장",
+        description: `${target} — 기록됨`,
       });
     } else {
       toast.success(
-        `${CHANNELS.find((c) => c.value === channel)!.label} 기록 완료`,
+        `${channelLabel} 기록 완료`,
         nextAction ? `다음 액션: ${nextAction}${nextDue ? ` (${nextDue})` : ""}` : target
       );
     }

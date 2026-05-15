@@ -82,7 +82,7 @@ export function AccountDetailClient({ id }: { id: string }) {
                   <BarChart3 className="h-4 w-4" />미팅 모드
                 </Link>
               </Button>
-              <Button variant="outline" onClick={() => wizard.open({ accountName: account.name })}>
+              <Button variant="outline" onClick={() => wizard.open({ accountId: account.id, accountName: account.name })}>
                 <Calendar className="h-4 w-4" />활동 기록
               </Button>
             </div>
@@ -289,7 +289,7 @@ export function AccountDetailClient({ id }: { id: string }) {
                   variant="outline"
                   size="sm"
                   className="flex-col h-16 gap-1"
-                  onClick={() => wizard.open({ accountName: account.name, defaultChannel: channel })}
+                  onClick={() => wizard.open({ accountId: account.id, accountName: account.name, defaultChannel: channel })}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="text-xs">{label}</span>

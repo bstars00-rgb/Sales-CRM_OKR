@@ -9,6 +9,7 @@ import { KpiCardWidget } from "@/components/dashboard/KpiCard";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { getTeamMembersComputed } from "@/lib/team/members";
 import { getTeamBrief, KOREA_TEAM_OWNERS, VIETNAM_TEAM_OWNERS, JAPAN_TEAM_OWNERS, SEA_TEAM_OWNERS } from "@/lib/brief/aggregate";
+import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { AlertTriangle } from "lucide-react";
@@ -23,14 +24,15 @@ const TEAMS = [
 const PACING_DOT = { ok: "bg-success", warn: "bg-warning", bad: "bg-destructive" };
 
 export default function LeadDashboardPage() {
+  const version = useSalesVersion();
   const [activeTeam, setActiveTeam] = useState(TEAMS[0]);
 
   const members = useMemo(
     () => getTeamMembersComputed(activeTeam.owners),
-    [activeTeam]
+    [activeTeam, version]
   );
 
-  const brief = useMemo(() => getTeamBrief(activeTeam.name), [activeTeam]);
+  const brief = useMemo(() => getTeamBrief(activeTeam.name), [activeTeam, version]);
 
   const stalled = useMemo(
     () => MOCK_DEALS.filter(
@@ -38,7 +40,7 @@ export default function LeadDashboardPage() {
         && d.daysInStage >= 14
         && activeTeam.owners.includes(d.ownerUserId)
     ),
-    [activeTeam]
+    [activeTeam, version]
   );
 
   // 팀 KPI 카드 — Brief 합산값으로
@@ -97,7 +99,8 @@ export default function LeadDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          {/* 데스크탑: 테이블 */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
@@ -119,12 +122,12 @@ export default function LeadDashboardPage() {
                       <div className="flex items-center gap-2">
                         <span className={cn("h-2 w-2 rounded-full shrink-0", PACING_DOT[m.pacing])} />
                         <span className="font-medium">{m.name}</span>
-                        <span className="text-xs text-muted-foreground hidden md:inline">{m.role}</span>
+                        <span className="text-xs text-muted-foreground">{m.role}</span>
                       </div>
                     </td>
                     <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Progress value={Math.min(m.revenueAchievementPct, 100)} className="w-12 md:w-16 h-1.5" />
+                        <Progress value={Math.min(m.revenueAchievementPct, 100)} className="w-16 h-1.5" />
                         <span className="font-medium tabular-nums w-10 text-right">{m.revenueAchievementPct}%</span>
                       </div>
                     </td>
@@ -142,9 +145,7 @@ export default function LeadDashboardPage() {
                       {m.alerts.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {m.alerts.map((a, i) => (
-                            <Badge key={i} variant="warning" className="text-xs">
-                              {a}
-                            </Badge>
+                            <Badge key={i} variant="warning" className="text-xs">{a}</Badge>
                           ))}
                         </div>
                       ) : (
@@ -155,6 +156,42 @@ export default function LeadDashboardPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* 모바일: 카드 */}
+          <div className="md:hidden space-y-3">
+            {members.map((m) => (
+              <div key={m.userId} className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", PACING_DOT[m.pacing])} />
+                    <span className="font-semibold truncate">{m.name}</span>
+                    <span className="text-xs text-muted-foreground truncate">{m.role}</span>
+                  </div>
+                  <Badge variant={m.pacing === "ok" ? "success" : m.pacing === "warn" ? "warning" : "destructive"} className="shrink-0">
+                    {m.revenueAchievementPct}%
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 text-xs">
+                  <Mini label="GP" value={`${m.gpAchievementPct}%`} />
+                  <Mini label="Win율" value={`${m.winRate}%`} />
+                  <Mini label="C6/BRIEF" value={`${m.critical6Done}/${m.critical6Total} · ${m.briefRate}%`}
+                        bad={m.briefRate < 70} />
+                  <Mini label="미팅" value={`${m.meetings}건`} />
+                  <Mini label="제안" value={`${m.proposals}건`} />
+                  <Mini label="인센" value={formatCurrency(m.totalIncentive)} />
+                </div>
+
+                {m.alerts.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-2 border-t">
+                    {m.alerts.map((a, i) => (
+                      <Badge key={i} variant="warning" className="text-xs">{a}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -223,6 +260,15 @@ function Row({ k, v, good, bad }: { k: string; v: string; good?: boolean; bad?: 
     <div className="flex justify-between border-b last:border-0 py-1.5">
       <span className="text-muted-foreground">{k}</span>
       <span className={cn("font-medium tabular-nums", good && "text-success", bad && "text-destructive")}>{v}</span>
+    </div>
+  );
+}
+
+function Mini({ label, value, bad }: { label: string; value: string; bad?: boolean }) {
+  return (
+    <div>
+      <div className="text-muted-foreground">{label}</div>
+      <div className={cn("font-medium tabular-nums mt-0.5", bad && "text-destructive")}>{value}</div>
     </div>
   );
 }
