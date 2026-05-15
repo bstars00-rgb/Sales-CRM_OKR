@@ -88,6 +88,17 @@ export function deleteTask(taskId: string): boolean {
 // ============================================================
 // Deals — 단계 이동 / Win / Lost
 // ============================================================
+export function updateDeal(
+  dealId: string,
+  patch: Partial<Pick<Deal, "amount" | "expectedCloseDate" | "expectedGp" | "probabilityPct" | "name">>
+): Deal | null {
+  const d = MOCK_DEALS.find((x) => x.id === dealId);
+  if (!d) return null;
+  Object.assign(d, patch);
+  bump();
+  return d;
+}
+
 export function moveDealStage(dealId: string, toStageId: string): Deal | null {
   const d = MOCK_DEALS.find((x) => x.id === dealId);
   if (!d) return null;

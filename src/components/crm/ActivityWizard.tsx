@@ -8,6 +8,7 @@ import { useToast } from "@/components/common/ToastContext";
 import { Phone, Calendar, Mail, MessageCircle, FileText, StickyNote, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { addActivity } from "@/lib/store/sales-store";
+import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import type { ActivityType } from "@/lib/mock/types";
 
 // Web Speech API 타입 (브라우저 native, TS lib에 없음)
@@ -75,7 +76,13 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
   const [note, setNote] = useState("");
   const [nextAction, setNextAction] = useState("");
   const [nextDue, setNextDue] = useState("");
+  const [selectedContactId, setSelectedContactId] = useState<string>("");
   const toast = useToast();
+
+  // 선택된 계정의 담당자 목록
+  const accountContacts = ctx.accountId
+    ? MOCK_CONTACTS.filter((c) => c.accountId === ctx.accountId)
+    : [];
 
   // 음성 받아쓰기 (Web Speech API)
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
@@ -132,12 +139,20 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
     setNote("");
     setNextAction("");
     setNextDue("");
+    setSelectedContactId("");
     if (listening) stopVoice();
   };
 
   const open = useCallback((input: OpenInput = {}) => {
     setCtx(input);
     if (input.defaultChannel) setChannel(input.defaultChannel);
+    // contactId 또는 메인 담당자 자동 선택
+    if (input.contactId) {
+      setSelectedContactId(input.contactId);
+    } else if (input.accountId) {
+      const primary = MOCK_CONTACTS.find((c) => c.accountId === input.accountId && c.isPrimary);
+      if (primary) setSelectedContactId(primary.id);
+    }
     setIsOpen(true);
   }, []);
 
@@ -154,8 +169,13 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
     const channelLabel = CHANNELS.find((c) => c.value === channel)!.label;
 
     // 실제 store에 활동 기록 — 단, 어떤 대상도 지정 안 됐으면 skip
-    if (ctx.accountId || ctx.dealId || ctx.contactId) {
+    if (ctx.accountId || ctx.dealId || ctx.contactId || selectedContactId) {
       const outcomeText = outcome === "POSITIVE" ? "긍정" : outcome === "NEUTRAL" ? "중립" : outcome === "NEGATIVE" ? "부정" : undefined;
+      const finalContactId = selectedContactId || ctx.contactId;
+      const finalContact = finalContactId ? MOCK_CONTACTS.find((c) => c.id === finalContactId) : undefined;
+      const finalContactName = finalContact
+        ? `${finalContact.firstName} ${finalContact.lastName ?? ""}`.trim()
+        : ctx.contactName;
       addActivity({
         activityType: channelToActivityType(channel),
         userId: "user-mock-1",
@@ -164,10 +184,10 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
         accountName: ctx.accountName,
         dealId: ctx.dealId,
         dealName: ctx.dealName,
-        contactId: ctx.contactId,
-        contactName: ctx.contactName,
+        contactId: finalContactId,
+        contactName: finalContactName,
         durationMinutes: channel === "CALL" || channel === "MEETING" ? 15 : undefined,
-        subject: `${channelLabel} 기록`,
+        subject: `${channelLabel} 기록${finalContactName ? ` — ${finalContactName}` : ""}`,
         content: note || undefined,
         outcome: outcomeText,
         nextAction: nextAction || undefined,
@@ -228,6 +248,26 @@ export function ActivityWizardRoot({ children }: { children: React.ReactNode }) 
                 ))}
               </div>
             </div>
+
+            {accountContacts.length > 0 && (
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">담당자 (선택)</div>
+                <select
+                  value={selectedContactId}
+                  onChange={(e) => setSelectedContactId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">— 담당자 선택 안 함 —</option>
+                  {accountContacts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.firstName} {c.lastName ?? ""} ({c.title ?? "—"})
+                      {c.isPrimary ? " · 메인" : ""}
+                      {c.decisionPower >= 4 ? " · 결정권자" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">결과는?</div>

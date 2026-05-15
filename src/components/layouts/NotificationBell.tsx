@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bell, ExternalLink, AlertTriangle, ArrowRight } from "lucide-react";
+import { Bell, ExternalLink, AlertTriangle, ArrowRight, Check, CheckCheck } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -14,7 +14,11 @@ import { Button } from "@/components/ui/button";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_TASKS } from "@/lib/mock/activities";
+import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency, relativeTime } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/cn";
+
+const READ_STORAGE_KEY = "sales-crm-notif-read";
 
 type NotifKind = "DORMANT" | "STALE_DEAL" | "OVERDUE_TASK" | "NO_CONTACT_KEY";
 
@@ -103,11 +107,61 @@ const KIND_LABEL: Record<NotifKind, string> = {
   NO_CONTACT_KEY: "위험",
 };
 
+function loadReadIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(READ_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(arr);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveReadIds(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(Array.from(ids)));
+  } catch {}
+}
+
 export function NotificationBell() {
-  const notifications = useMemo(() => detectNotifications(), []);
-  const unread = notifications.length;
-  const high = notifications.filter((n) => n.severity === "HIGH").length;
+  const version = useSalesVersion();
+  const notifications = useMemo(() => detectNotifications(), [version]);
+  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setReadIds(loadReadIds());
+    setHydrated(true);
+  }, []);
+
+  const unreadList = hydrated ? notifications.filter((n) => !readIds.has(n.id)) : notifications;
+  const unread = unreadList.length;
+  const high = unreadList.filter((n) => n.severity === "HIGH").length;
   const [selected, setSelected] = useState<Notification | null>(null);
+
+  const markAsRead = (id: string) => {
+    setReadIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      saveReadIds(next);
+      return next;
+    });
+  };
+
+  const markAllRead = () => {
+    const next = new Set<string>();
+    notifications.forEach((n) => next.add(n.id));
+    setReadIds(next);
+    saveReadIds(next);
+  };
+
+  const handleSelect = (n: Notification) => {
+    markAsRead(n.id);
+    setSelected(n);
+  };
 
   return (
     <>
@@ -127,8 +181,19 @@ export function NotificationBell() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-80 max-h-[500px] overflow-y-auto p-0">
           <DropdownMenuLabel className="px-3 py-2.5 flex items-center justify-between">
-            <span>알림 ({unread})</span>
-            {high > 0 && <Badge variant="destructive" className="text-xs">긴급 {high}</Badge>}
+            <span>알림 ({unread}/{notifications.length})</span>
+            <div className="flex items-center gap-2">
+              {high > 0 && <Badge variant="destructive" className="text-xs">긴급 {high}</Badge>}
+              {unread > 0 && (
+                <button
+                  onClick={(e) => { e.preventDefault(); markAllRead(); }}
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5"
+                  title="모두 읽음 처리"
+                >
+                  <CheckCheck className="h-3 w-3" />모두 읽음
+                </button>
+              )}
+            </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="m-0" />
 
@@ -138,29 +203,44 @@ export function NotificationBell() {
             </div>
           ) : (
             <ul>
-              {notifications.map((n) => (
-                <li key={n.id} className="border-b last:border-0">
-                  <button
-                    onClick={() => setSelected(n)}
-                    className="w-full text-left px-3 py-2.5 hover:bg-accent transition-colors"
-                  >
-                    <div className="flex items-start gap-2">
-                      <Badge
-                        variant={n.severity === "HIGH" ? "destructive" : "warning"}
-                        className="text-[10px] shrink-0 mt-0.5"
-                      >
-                        {KIND_LABEL[n.kind]}
-                      </Badge>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium leading-tight truncate">{n.title}</div>
-                        {n.detail && (
-                          <div className="text-xs text-muted-foreground mt-0.5 truncate">{n.detail}</div>
+              {notifications.map((n) => {
+                const isRead = readIds.has(n.id);
+                return (
+                  <li key={n.id} className="border-b last:border-0">
+                    <button
+                      onClick={() => handleSelect(n)}
+                      className={cn(
+                        "w-full text-left px-3 py-2.5 hover:bg-accent transition-colors",
+                        isRead && "opacity-60"
+                      )}
+                    >
+                      <div className="flex items-start gap-2">
+                        {!isRead && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0 mt-2" aria-label="안 읽음" />
                         )}
+                        {isRead && (
+                          <Check className="h-3 w-3 text-muted-foreground shrink-0 mt-1" aria-label="읽음" />
+                        )}
+                        <Badge
+                          variant={n.severity === "HIGH" ? "destructive" : "warning"}
+                          className="text-[10px] shrink-0 mt-0.5"
+                        >
+                          {KIND_LABEL[n.kind]}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <div className={cn(
+                            "text-sm leading-tight truncate",
+                            !isRead ? "font-medium" : "font-normal"
+                          )}>{n.title}</div>
+                          {n.detail && (
+                            <div className="text-xs text-muted-foreground mt-0.5 truncate">{n.detail}</div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                </li>
-              ))}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </DropdownMenuContent>

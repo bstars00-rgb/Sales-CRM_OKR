@@ -5,17 +5,31 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { GradeBadge, StatusBadge, SegmentBadge, CountryFlag, RiskDot } from "@/components/crm/AccountBadges";
 import { EmptyState } from "@/components/common/StateCards";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
+import type { Account } from "@/lib/mock/types";
 import { formatCurrency, relativeTime } from "@/lib/utils/format";
-import { Plus, Search, Filter, Star, Building2 } from "lucide-react";
+import { Plus, Search, Filter, Star, Building2, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+
+type SortKey =
+  | "name" | "country" | "grade" | "status" | "owner"
+  | "lastActivityAt" | "revenue3M" | "gp3M" | "pipelineAmount";
+
+interface SortState {
+  key: SortKey;
+  dir: "asc" | "desc";
+}
+
+const PAGE_SIZE = 12;
 
 export default function AccountsPage() {
   const [q, setQ] = useState("");
   const [grade, setGrade] = useState<string>("ALL");
   const [country, setCountry] = useState<string>("ALL");
+  const [sort, setSort] = useState<SortState>({ key: "lastActivityAt", dir: "desc" });
+  const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
     return MOCK_ACCOUNTS.filter((a) => {
@@ -26,14 +40,80 @@ export default function AccountsPage() {
     });
   }, [q, grade, country]);
 
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const compare = (a: Account, b: Account): number => {
+      const get = (x: Account): string | number => {
+        switch (sort.key) {
+          case "name":            return x.name;
+          case "country":         return x.countryCode;
+          case "grade":           return x.grade;
+          case "status":          return x.status;
+          case "owner":           return x.ownerName;
+          case "lastActivityAt":  return new Date(x.lastActivityAt).getTime();
+          case "revenue3M":       return x.revenue3M;
+          case "gp3M":            return x.gp3M;
+          case "pipelineAmount":  return x.pipelineAmount;
+        }
+      };
+      const va = get(a);
+      const vb = get(b);
+      if (typeof va === "number" && typeof vb === "number") {
+        return sort.dir === "asc" ? va - vb : vb - va;
+      }
+      return sort.dir === "asc"
+        ? String(va).localeCompare(String(vb), "ko")
+        : String(vb).localeCompare(String(va), "ko");
+    };
+    arr.sort(compare);
+    return arr;
+  }, [filtered, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageItems = sorted.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
   const countries = Array.from(new Set(MOCK_ACCOUNTS.map((a) => a.countryCode)));
+
+  const toggleSort = (key: SortKey) => {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "desc" }
+    );
+    setPage(0);
+  };
+
+  const SortHeader = ({ sortKey, label, align = "left", className = "" }: {
+    sortKey: SortKey; label: string; align?: "left" | "right"; className?: string;
+  }) => {
+    const isActive = sort.key === sortKey;
+    return (
+      <th className={cn("py-2.5 px-3 font-medium text-muted-foreground select-none", className)}>
+        <button
+          onClick={() => toggleSort(sortKey)}
+          className={cn(
+            "flex items-center gap-1 hover:text-foreground transition-colors",
+            align === "right" && "justify-end w-full",
+            isActive && "text-foreground font-semibold"
+          )}
+        >
+          {label}
+          {isActive && (sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+        </button>
+      </th>
+    );
+  };
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">고객사</h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length}개 / 전체 {MOCK_ACCOUNTS.length}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {sorted.length}개 / 전체 {MOCK_ACCOUNTS.length}
+            {sorted.length > PAGE_SIZE && ` · ${safePage * PAGE_SIZE + 1}-${Math.min((safePage + 1) * PAGE_SIZE, sorted.length)} 표시`}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">CSV 내보내기</Button>
@@ -50,15 +130,15 @@ export default function AccountsPage() {
             <Input
               placeholder="고객사명 검색..."
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => { setQ(e.target.value); setPage(0); }}
               className="pl-9 h-9"
             />
           </div>
-          <FilterChip label="국가" value={country} onChange={setCountry} options={[
+          <FilterChip label="국가" value={country} onChange={(v) => { setCountry(v); setPage(0); }} options={[
             { value: "ALL", label: "전체" },
             ...countries.map((c) => ({ value: c, label: c })),
           ]} />
-          <FilterChip label="등급" value={grade} onChange={setGrade} options={[
+          <FilterChip label="등급" value={grade} onChange={(v) => { setGrade(v); setPage(0); }} options={[
             { value: "ALL", label: "전체" },
             { value: "KEY_ACCOUNT", label: "KEY" },
             { value: "GROWTH", label: "GROWTH" },
@@ -72,82 +152,115 @@ export default function AccountsPage() {
         </div>
       </Card>
 
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <EmptyState
           icon={<Building2 className="h-10 w-10" />}
           title={q || grade !== "ALL" || country !== "ALL" ? "조건에 맞는 고객사가 없습니다" : "아직 등록된 고객사가 없습니다"}
           description={q || grade !== "ALL" || country !== "ALL"
             ? "필터를 초기화하거나 다른 검색어를 시도해보세요."
             : "첫 번째 고객사를 등록하고 영업을 시작하세요."}
-          action={{ label: "필터 초기화", onClick: () => { setQ(""); setGrade("ALL"); setCountry("ALL"); } }}
+          action={{ label: "필터 초기화", onClick: () => { setQ(""); setGrade("ALL"); setCountry("ALL"); setPage(0); } }}
         />
       ) : (
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40">
-              <tr className="border-b text-left">
-                <th className="py-2.5 px-3 w-8"></th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground">고객사</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground">국가/도시</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground">타입</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground">등급</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground">상태</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground">담당</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground">접촉</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground">다음 액션</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground text-right">3M 거래</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground text-right">3M GP</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground text-right">파이프</th>
-                <th className="py-2.5 px-3 font-medium text-muted-foreground w-8">⚠</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((a) => (
-                <tr key={a.id} className="border-b last:border-0 hover:bg-accent/40 transition-colors">
-                  <td className="py-2.5 px-3">
-                    <Star className="h-4 w-4 text-muted-foreground hover:text-warning cursor-pointer" />
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <Link href={`/crm/accounts/${a.id}`} className="font-medium hover:underline">
-                      {a.name}
-                    </Link>
-                  </td>
-                  <td className="py-2.5 px-3 text-xs">
-                    <CountryFlag code={a.countryCode} /> {a.countryName} · {a.city}
-                  </td>
-                  <td className="py-2.5 px-3"><SegmentBadge segment={a.segment} /></td>
-                  <td className="py-2.5 px-3"><GradeBadge grade={a.grade} /></td>
-                  <td className="py-2.5 px-3"><StatusBadge status={a.status} /></td>
-                  <td className="py-2.5 px-3 text-xs">{a.ownerName}</td>
-                  <td className="py-2.5 px-3 text-xs text-muted-foreground">
-                    {relativeTime(a.lastActivityAt)}
-                  </td>
-                  <td className="py-2.5 px-3 text-xs">
-                    {a.nextActionTitle ? (
-                      <span>{a.nextActionTitle}</span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="py-2.5 px-3 text-right tabular-nums">
-                    {a.revenue3M > 0 ? formatCurrency(a.revenue3M) : "—"}
-                  </td>
-                  <td className="py-2.5 px-3 text-right tabular-nums">
-                    {a.gp3M > 0 ? formatCurrency(a.gp3M) : "—"}
-                  </td>
-                  <td className="py-2.5 px-3 text-right tabular-nums">
-                    {a.pipelineAmount > 0 ? formatCurrency(a.pipelineAmount) : "—"}
-                  </td>
-                  <td className="py-2.5 px-3 text-center">
-                    <RiskDot level={a.riskLevel} />
-                  </td>
+      <>
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr className="border-b text-left">
+                  <th className="py-2.5 px-3 w-8"></th>
+                  <SortHeader sortKey="name"           label="고객사" />
+                  <SortHeader sortKey="country"        label="국가/도시" />
+                  <th className="py-2.5 px-3 font-medium text-muted-foreground">타입</th>
+                  <SortHeader sortKey="grade"          label="등급" />
+                  <SortHeader sortKey="status"         label="상태" />
+                  <SortHeader sortKey="owner"          label="담당" />
+                  <SortHeader sortKey="lastActivityAt" label="접촉" />
+                  <th className="py-2.5 px-3 font-medium text-muted-foreground">다음 액션</th>
+                  <SortHeader sortKey="revenue3M"      label="3M 거래" align="right" />
+                  <SortHeader sortKey="gp3M"           label="3M GP" align="right" />
+                  <SortHeader sortKey="pipelineAmount" label="파이프" align="right" />
+                  <th className="py-2.5 px-3 font-medium text-muted-foreground w-8">⚠</th>
                 </tr>
+              </thead>
+              <tbody>
+                {pageItems.map((a) => (
+                  <tr key={a.id} className="border-b last:border-0 hover:bg-accent/40 transition-colors">
+                    <td className="py-2.5 px-3">
+                      <Star className="h-4 w-4 text-muted-foreground hover:text-warning cursor-pointer" />
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <Link href={`/crm/accounts/${a.id}`} className="font-medium hover:underline">
+                        {a.name}
+                      </Link>
+                    </td>
+                    <td className="py-2.5 px-3 text-xs">
+                      <CountryFlag code={a.countryCode} /> {a.countryName} · {a.city}
+                    </td>
+                    <td className="py-2.5 px-3"><SegmentBadge segment={a.segment} /></td>
+                    <td className="py-2.5 px-3"><GradeBadge grade={a.grade} /></td>
+                    <td className="py-2.5 px-3"><StatusBadge status={a.status} /></td>
+                    <td className="py-2.5 px-3 text-xs">{a.ownerName}</td>
+                    <td className="py-2.5 px-3 text-xs text-muted-foreground">
+                      {relativeTime(a.lastActivityAt)}
+                    </td>
+                    <td className="py-2.5 px-3 text-xs">
+                      {a.nextActionTitle ? <span>{a.nextActionTitle}</span> : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">
+                      {a.revenue3M > 0 ? formatCurrency(a.revenue3M) : "—"}
+                    </td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">
+                      {a.gp3M > 0 ? formatCurrency(a.gp3M) : "—"}
+                    </td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">
+                      {a.pipelineAmount > 0 ? formatCurrency(a.pipelineAmount) : "—"}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <RiskDot level={a.riskLevel} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-muted-foreground">
+              {safePage + 1} / {totalPages} 페이지 ({sorted.length}건)
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant="outline" size="sm"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={safePage === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />이전
+              </Button>
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <Button
+                  key={i}
+                  variant={i === safePage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPage(i)}
+                  className="w-9"
+                >
+                  {i + 1}
+                </Button>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              <Button
+                variant="outline" size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={safePage >= totalPages - 1}
+              >
+                다음<ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </>
       )}
     </div>
   );

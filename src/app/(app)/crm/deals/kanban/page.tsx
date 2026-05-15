@@ -5,14 +5,16 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { GradeBadge, CountryFlag } from "@/components/crm/AccountBadges";
 import { useToast } from "@/components/common/ToastContext";
 import { MOCK_DEALS, MOCK_STAGES } from "@/lib/mock/deals";
 import { MOCK_CRITICAL_6 } from "@/lib/mock/kpi";
-import { moveDealStage, useSalesVersion } from "@/lib/store/sales-store";
+import { moveDealStage, updateDeal, useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
-import { Plus, Filter, ExternalLink } from "lucide-react";
+import { Plus, Filter, ExternalLink, Pencil, Check, X as XIcon } from "lucide-react";
+import type { Deal } from "@/lib/mock/types";
 
 const STAGE_AVG_DAYS = 7;
 
@@ -190,55 +192,14 @@ function KanbanColumn({
       </div>
       <div className="space-y-2 min-h-[100px]">
         {deals.map((d) => (
-          <div
+          <DealCard
             key={d.id}
-            draggable
-            onDragStart={(e) => onDragStart(e, d.id)}
+            deal={d}
+            terminal={terminal}
+            draggingId={draggingId}
+            onDragStart={onDragStart}
             onDragEnd={onDragEnd}
-            className={cn(
-              "transition-opacity",
-              draggingId === d.id && "opacity-30"
-            )}
-          >
-            <Card
-              className={cn(
-                "p-3 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-primary/40 transition-all relative group",
-                terminal === "won" && "border-success/50 bg-success/5",
-                terminal === "lost" && "border-destructive/50 bg-destructive/5 opacity-75"
-              )}
-            >
-              <Link
-                href={`/crm/deals/${d.id}`}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
-                aria-label="상세로 이동"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Link>
-              <div className="font-medium text-sm leading-tight mb-2 line-clamp-2 pr-5">{d.name}</div>
-              <div className="text-xs text-muted-foreground line-clamp-1 mb-2">{d.accountName}</div>
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-semibold tabular-nums">{formatCurrency(d.amount)}</span>
-                <span className="flex items-center gap-1">
-                  <CountryFlag code={d.countryCode} />
-                  <GradeBadge grade={d.grade} />
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
-                <span>📅 {d.expectedCloseDate}</span>
-                {!terminal && <span>{dotColor(d.daysInStage)} {d.daysInStage}일</span>}
-              </div>
-              {d.blockers && d.blockers.length > 0 && !terminal && (
-                <div className="mt-2 pt-2 border-t">
-                  {d.blockers.map((b, i) => (
-                    <div key={i} className="text-xs text-warning flex items-start gap-1">
-                      ⚠ {b.title}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
+          />
         ))}
         {deals.length === 0 && !dragOver && (
           <div className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed rounded-md">
@@ -251,6 +212,162 @@ function KanbanColumn({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function DealCard({
+  deal, terminal, draggingId, onDragStart, onDragEnd,
+}: {
+  deal: Deal;
+  terminal?: "won" | "lost";
+  draggingId: string | null;
+  onDragStart: (e: React.DragEvent, dealId: string) => void;
+  onDragEnd: () => void;
+}) {
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+  const [amount, setAmount] = useState(String(deal.amount));
+  const [closeDate, setCloseDate] = useState(deal.expectedCloseDate);
+
+  const startEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAmount(String(deal.amount));
+    setCloseDate(deal.expectedCloseDate);
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    const newAmount = Number(amount);
+    if (!Number.isFinite(newAmount) || newAmount < 0) {
+      toast.warning("금액 오류", "0 이상의 숫자를 입력해주세요");
+      return;
+    }
+    const patch: { amount?: number; expectedCloseDate?: string; expectedGp?: number } = {};
+    if (newAmount !== deal.amount) {
+      patch.amount = newAmount;
+      // GP 비율 유지
+      const gpRate = deal.amount > 0 ? deal.expectedGp / deal.amount : 0.15;
+      patch.expectedGp = Math.round(newAmount * gpRate);
+    }
+    if (closeDate !== deal.expectedCloseDate) {
+      patch.expectedCloseDate = closeDate;
+    }
+    if (Object.keys(patch).length > 0) {
+      updateDeal(deal.id, patch);
+      toast.success("딜 업데이트", deal.name);
+    }
+    setEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setAmount(String(deal.amount));
+    setCloseDate(deal.expectedCloseDate);
+  };
+
+  return (
+    <div
+      draggable={!editing}
+      onDragStart={(e) => !editing && onDragStart(e, deal.id)}
+      onDragEnd={onDragEnd}
+      className={cn(
+        "transition-opacity",
+        draggingId === deal.id && "opacity-30"
+      )}
+    >
+      <Card
+        className={cn(
+          "p-3 hover:shadow-md hover:border-primary/40 transition-all relative group",
+          !editing && "cursor-grab active:cursor-grabbing",
+          editing && "border-primary cursor-default",
+          terminal === "won" && "border-success/50 bg-success/5",
+          terminal === "lost" && "border-destructive/50 bg-destructive/5 opacity-75"
+        )}
+      >
+        {/* Header actions */}
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity">
+          {!terminal && !editing && (
+            <button
+              onClick={startEdit}
+              aria-label="빠른 편집"
+              className="hover:text-primary"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {!editing && (
+            <Link
+              href={`/crm/deals/${deal.id}`}
+              className="hover:text-foreground"
+              aria-label="상세로 이동"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          )}
+        </div>
+
+        <div className="font-medium text-sm leading-tight mb-2 line-clamp-2 pr-10">{deal.name}</div>
+        <div className="text-xs text-muted-foreground line-clamp-1 mb-2">{deal.accountName}</div>
+
+        {editing ? (
+          <div className="space-y-2 mt-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">예상 거래액</div>
+              <Input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                className="h-7 text-xs"
+                autoFocus
+              />
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">클로징 예정일</div>
+              <Input
+                type="date"
+                value={closeDate}
+                onChange={(e) => setCloseDate(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                className="h-7 text-xs"
+              />
+            </div>
+            <div className="flex gap-1 justify-end">
+              <Button variant="ghost" size="sm" className="h-6 px-2" onClick={cancelEdit}>
+                <XIcon className="h-3 w-3" />
+              </Button>
+              <Button size="sm" className="h-6 px-2" onClick={saveEdit}>
+                <Check className="h-3 w-3" />저장
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="font-semibold tabular-nums">{formatCurrency(deal.amount)}</span>
+              <span className="flex items-center gap-1">
+                <CountryFlag code={deal.countryCode} />
+                <GradeBadge grade={deal.grade} />
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
+              <span>📅 {deal.expectedCloseDate}</span>
+              {!terminal && <span>{dotColor(deal.daysInStage)} {deal.daysInStage}일</span>}
+            </div>
+            {deal.blockers && deal.blockers.length > 0 && !terminal && (
+              <div className="mt-2 pt-2 border-t">
+                {deal.blockers.map((b, i) => (
+                  <div key={i} className="text-xs text-warning flex items-start gap-1">
+                    ⚠ {b.title}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </Card>
     </div>
   );
 }
