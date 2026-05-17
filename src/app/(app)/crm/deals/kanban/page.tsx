@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GradeBadge, CountryFlag } from "@/components/crm/AccountBadges";
 import { useToast } from "@/components/common/ToastContext";
+import { useFavorites } from "@/lib/store/favorites";
 import { MOCK_DEALS, MOCK_STAGES } from "@/lib/mock/deals";
 import { MOCK_CRITICAL_6 } from "@/lib/mock/kpi";
 import { moveDealStage, updateDeal, useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency } from "@/lib/utils/format";
+import { generateCsv, downloadCsv } from "@/lib/utils/csv";
 import { cn } from "@/lib/utils/cn";
-import { Plus, Filter, ExternalLink, Pencil, Check, X as XIcon } from "lucide-react";
+import { Plus, Filter, ExternalLink, Pencil, Check, X as XIcon, Star, Download } from "lucide-react";
 import type { Deal } from "@/lib/mock/types";
 
 const STAGE_AVG_DAYS = 7;
@@ -27,17 +29,48 @@ function dotColor(days: number) {
 export default function DealKanbanPage() {
   const version = useSalesVersion();
   const toast = useToast();
+  const favs = useFavorites();
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [favOnly, setFavOnly] = useState(false);
   void version;
+
+  const visibleDeals = favOnly
+    ? MOCK_DEALS.filter((d) => favs.isFavorite(d.id))
+    : MOCK_DEALS;
 
   const openStages = MOCK_STAGES.filter((s) => s.stageKind === "OPEN");
   const dealsByStage = openStages.map((s) => ({
     stage: s,
-    deals: MOCK_DEALS.filter((d) => d.stageId === s.id && d.outcome === "OPEN"),
+    deals: visibleDeals.filter((d) => d.stageId === s.id && d.outcome === "OPEN"),
   }));
-  const wonDeals = MOCK_DEALS.filter((d) => d.outcome === "WON");
-  const lostDeals = MOCK_DEALS.filter((d) => d.outcome === "LOST");
+  const wonDeals = visibleDeals.filter((d) => d.outcome === "WON");
+  const lostDeals = visibleDeals.filter((d) => d.outcome === "LOST");
+
+  const exportCsv = () => {
+    const csv = generateCsv(visibleDeals, [
+      { label: "ID",            get: (d) => d.id },
+      { label: "딜명",          get: (d) => d.name },
+      { label: "고객사",        get: (d) => d.accountName },
+      { label: "담당",          get: (d) => d.ownerName },
+      { label: "타입",          get: (d) => d.dealType },
+      { label: "결과",          get: (d) => d.outcome },
+      { label: "단계",          get: (d) => d.stageName },
+      { label: "금액",          get: (d) => d.amount },
+      { label: "예상 GP",       get: (d) => d.expectedGp },
+      { label: "통화",          get: (d) => d.currency },
+      { label: "확률(%)",       get: (d) => d.probabilityPct },
+      { label: "클로징 예정일", get: (d) => d.expectedCloseDate },
+      { label: "단계 체류일",    get: (d) => d.daysInStage },
+      { label: "국가",          get: (d) => d.countryCode },
+      { label: "등급",          get: (d) => d.grade },
+      { label: "Win 사유",      get: (d) => d.winReasonCode ?? "" },
+      { label: "Lost 사유",     get: (d) => d.lostReasonCode ?? "" },
+    ]);
+    const date = new Date().toISOString().split("T")[0];
+    downloadCsv(`deals-${date}`, csv);
+    toast.success("CSV 내보내기", `${visibleDeals.length}개 딜 다운로드`);
+  };
 
   const handleDragStart = (e: React.DragEvent, dealId: string) => {
     e.dataTransfer.setData("text/plain", dealId);
@@ -93,11 +126,24 @@ export default function DealKanbanPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">딜 칸반</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            OPEN {MOCK_DEALS.filter((d) => d.outcome === "OPEN").length} · WON {wonDeals.length} · LOST {lostDeals.length}
+            OPEN {visibleDeals.filter((d) => d.outcome === "OPEN").length} · WON {wonDeals.length} · LOST {lostDeals.length}
+            {favOnly && <span className="text-warning"> · 즐겨찾기 필터 적용</span>}
             <span className="hidden md:inline"> · 카드를 끌어 단계 이동</span>
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant={favOnly ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFavOnly((v) => !v)}
+            title="즐겨찾기만 보기"
+          >
+            <Star className={cn("h-4 w-4", favOnly && "fill-current")} />
+            즐겨찾기 {favs.count > 0 && `(${favs.count})`}
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportCsv}>
+            <Download className="h-4 w-4" />CSV ({visibleDeals.length})
+          </Button>
           <Button variant="outline" size="sm"><Filter className="h-4 w-4" />필터</Button>
           <Button size="sm" asChild>
             <Link href="/crm/deals/new"><Plus className="h-4 w-4" />새 딜</Link>
@@ -238,9 +284,11 @@ function DealCard({
   onDragEnd: () => void;
 }) {
   const toast = useToast();
+  const favs = useFavorites();
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState(String(deal.amount));
   const [closeDate, setCloseDate] = useState(deal.expectedCloseDate);
+  const isFav = favs.isFavorite(deal.id);
 
   const startEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -298,26 +346,43 @@ function DealCard({
         )}
       >
         {/* Header actions */}
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity">
-          {!terminal && !editing && (
-            <button
-              onClick={startEdit}
-              aria-label="빠른 편집"
-              className="hover:text-primary"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {!editing && (
-            <Link
-              href={`/crm/deals/${deal.id}`}
-              className="hover:text-foreground"
-              aria-label="상세로 이동"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-          )}
+        <div className="absolute top-2 right-2 flex gap-1.5 items-center">
+          <button
+            onClick={(e) => { e.stopPropagation(); favs.toggle(deal.id); }}
+            aria-label={isFav ? "즐겨찾기 해제" : "즐겨찾기"}
+            className={cn(
+              "transition-opacity",
+              isFav ? "opacity-100" : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
+            )}
+          >
+            <Star
+              className={cn(
+                "h-3.5 w-3.5",
+                isFav ? "text-warning fill-current" : "text-muted-foreground hover:text-warning"
+              )}
+            />
+          </button>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity">
+            {!terminal && !editing && (
+              <button
+                onClick={startEdit}
+                aria-label="빠른 편집"
+                className="hover:text-primary"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {!editing && (
+              <Link
+                href={`/crm/deals/${deal.id}`}
+                className="hover:text-foreground"
+                aria-label="상세로 이동"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="font-medium text-sm leading-tight mb-2 line-clamp-2 pr-10">{deal.name}</div>

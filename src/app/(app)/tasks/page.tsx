@@ -13,7 +13,8 @@ import { useToast } from "@/components/common/ToastContext";
 import { MOCK_TASKS } from "@/lib/mock/activities";
 import type { Task } from "@/lib/mock/types";
 import { addTask, toggleTask, deleteTask, useSalesVersion } from "@/lib/store/sales-store";
-import { Plus, Trash2, X } from "lucide-react";
+import { generateCsv, downloadCsv } from "@/lib/utils/csv";
+import { Plus, Trash2, X, Download } from "lucide-react";
 
 const PRIO_COLOR: Record<Task["priority"], "destructive" | "warning" | "muted"> = {
   HIGH: "destructive", MED: "warning", LOW: "muted",
@@ -43,13 +44,36 @@ export default function TasksPage() {
   });
   const assigned = MOCK_TASKS.filter((t) => t.status === "TODO");
 
+  const exportCsv = () => {
+    const csv = generateCsv(MOCK_TASKS, [
+      { label: "ID",           get: (t) => t.id },
+      { label: "제목",         get: (t) => t.title },
+      { label: "담당",         get: (t) => t.ownerUserId },
+      { label: "상태",         get: (t) => t.status },
+      { label: "우선순위",      get: (t) => t.priority },
+      { label: "채널",         get: (t) => t.channel ?? "" },
+      { label: "마감",         get: (t) => t.dueAt ?? "" },
+      { label: "완료",         get: (t) => t.completedAt ?? "" },
+      { label: "관련 고객사",   get: (t) => t.relatedAccountName ?? "" },
+      { label: "관련 딜",      get: (t) => t.relatedDealName ?? "" },
+    ]);
+    const date = new Date().toISOString().split("T")[0];
+    downloadCsv(`tasks-${date}`, csv);
+    toast.success("CSV 내보내기", `${MOCK_TASKS.length}건 태스크 다운로드`);
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">태스크</h1>
-        <Button onClick={() => setFormOpen((o) => !o)}>
-          {formOpen ? <><X className="h-4 w-4" />닫기</> : <><Plus className="h-4 w-4" />새 태스크</>}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={MOCK_TASKS.length === 0}>
+            <Download className="h-4 w-4" />CSV ({MOCK_TASKS.length})
+          </Button>
+          <Button onClick={() => setFormOpen((o) => !o)}>
+            {formOpen ? <><X className="h-4 w-4" />닫기</> : <><Plus className="h-4 w-4" />새 태스크</>}
+          </Button>
+        </div>
       </div>
 
       {formOpen && (
