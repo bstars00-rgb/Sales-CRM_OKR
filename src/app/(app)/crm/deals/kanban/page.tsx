@@ -171,6 +171,10 @@ function KanbanColumn({
 }: ColumnProps) {
   const total = deals.reduce((s, d) => s + d.amount, 0);
   const totalGp = deals.reduce((s, d) => s + d.expectedGp, 0);
+  const avgStay = !terminal && deals.length > 0
+    ? Math.round(deals.reduce((s, d) => s + d.daysInStage, 0) / deals.length)
+    : null;
+  const stalledCount = !terminal ? deals.filter((d) => d.daysInStage >= STAGE_AVG_DAYS * 2).length : 0;
   return (
     <div
       className={cn(
@@ -189,6 +193,14 @@ function KanbanColumn({
         <div className="text-xs text-muted-foreground mt-0.5 tabular-nums">
           {formatCurrency(total)} · GP {formatCurrency(totalGp)}
         </div>
+        {avgStay !== null && (
+          <div className="text-xs mt-1 flex items-center gap-2">
+            <span className="text-muted-foreground">평균 {avgStay}일</span>
+            {stalledCount > 0 && (
+              <span className="text-destructive">🔴 정체 {stalledCount}</span>
+            )}
+          </div>
+        )}
       </div>
       <div className="space-y-2 min-h-[100px]">
         {deals.map((d) => (

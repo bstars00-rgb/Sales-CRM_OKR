@@ -32,12 +32,15 @@ export default function OkrPage() {
           <h1 className="text-2xl font-bold tracking-tight">OKR</h1>
           <p className="text-sm text-muted-foreground mt-1">2026 / Q2 · 회사 → 팀 → 개인 정렬</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button asChild variant="outline" size="sm">
             <Link href="/okr/tree">트리 뷰</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/okr/critical-six">Critical 6</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/okr/retro">분기 회고</Link>
           </Button>
           <Button size="sm" asChild>
             <Link href="/okr/new"><Plus className="h-4 w-4" />새 Objective</Link>
