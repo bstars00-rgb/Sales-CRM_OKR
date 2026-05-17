@@ -14,13 +14,15 @@ import { Button } from "@/components/ui/button";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_TASKS } from "@/lib/mock/activities";
+import { MOCK_CONTRACTS, getDaysUntilExpiry, getRenewalUrgency } from "@/lib/mock/contracts";
 import { useSalesVersion } from "@/lib/store/sales-store";
+import { useNotificationRules } from "@/lib/store/notification-rules";
 import { formatCurrency, relativeTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
 const READ_STORAGE_KEY = "sales-crm-notif-read";
 
-type NotifKind = "DORMANT" | "STALE_DEAL" | "OVERDUE_TASK" | "NO_CONTACT_KEY";
+type NotifKind = "DORMANT" | "STALE_DEAL" | "OVERDUE_TASK" | "NO_CONTACT_KEY" | "RENEWAL_DUE";
 
 interface Notification {
   id: string;
@@ -38,15 +40,25 @@ function ageMs(date: string | Date): number {
   return Date.now() - new Date(date).getTime();
 }
 
-function detectNotifications(): Notification[] {
+interface DetectOpts {
+  dormantDays: number;
+  staleDealDays: number;
+  renewalWarnDays: number;
+  enableDormant: boolean;
+  enableStaleDeal: boolean;
+  enableOverdueTask: boolean;
+  enableRenewal: boolean;
+}
+
+function detectNotifications(opts: DetectOpts): Notification[] {
   const out: Notification[] = [];
   const now = Date.now();
 
-  // 1) DORMANT 진입한 KEY/GROWTH 고객사 (60일+ 미접촉)
-  for (const a of MOCK_ACCOUNTS) {
+  // 1) DORMANT 진입한 KEY/GROWTH 고객사 (룰: dormantDays)
+  if (opts.enableDormant) for (const a of MOCK_ACCOUNTS) {
     if (a.grade !== "KEY_ACCOUNT" && a.grade !== "GROWTH") continue;
     const days = Math.floor(ageMs(a.lastActivityAt) / 86400000);
-    if (days >= 60) {
+    if (days >= opts.dormantDays) {
       out.push({
         id: `dorm-${a.id}`, kind: "DORMANT",
         severity: days >= 90 ? "HIGH" : "MED",
@@ -59,10 +71,10 @@ function detectNotifications(): Notification[] {
     }
   }
 
-  // 2) 정체된 OPEN 딜 (14일+)
-  for (const d of MOCK_DEALS) {
+  // 2) 정체된 OPEN 딜 (룰: staleDealDays)
+  if (opts.enableStaleDeal) for (const d of MOCK_DEALS) {
     if (d.outcome !== "OPEN") continue;
-    if (d.daysInStage >= 14) {
+    if (d.daysInStage >= opts.staleDealDays) {
       out.push({
         id: `stale-${d.id}`, kind: "STALE_DEAL",
         severity: d.daysInStage >= 21 ? "HIGH" : "MED",
@@ -75,8 +87,27 @@ function detectNotifications(): Notification[] {
     }
   }
 
-  // 3) 지연된 태스크
-  for (const t of MOCK_TASKS) {
+  // 3) 갱신 임박 계약 (룰: renewalWarnDays, 자동 갱신 아닌 경우만)
+  if (opts.enableRenewal) for (const c of MOCK_CONTRACTS) {
+    if (c.autoRenew) continue;
+    const daysLeft = getDaysUntilExpiry(c.contractEndDate);
+    if (daysLeft > opts.renewalWarnDays || daysLeft < 0) continue;
+    const account = MOCK_ACCOUNTS.find((a) => a.id === c.accountId);
+    if (!account) continue;
+    const urgency = getRenewalUrgency(daysLeft);
+    out.push({
+      id: `renew-${c.accountId}`, kind: "RENEWAL_DUE",
+      severity: urgency === "CRITICAL" ? "HIGH" : "MED",
+      title: `${account.name} 계약 ${daysLeft}일 후 만료`,
+      detail: `${formatCurrency(c.annualValue)} · 자동 갱신 아님`,
+      href: "/crm/renewals",
+      ageMs: (90 - daysLeft) * 86400000, // 마감 임박할수록 위로
+      refType: "account", refId: c.accountId,
+    });
+  }
+
+  // 4) 지연된 태스크
+  if (opts.enableOverdueTask) for (const t of MOCK_TASKS) {
     if (t.status !== "TODO" || !t.dueAt) continue;
     const due = new Date(t.dueAt).getTime();
     if (due < now) {
@@ -105,6 +136,7 @@ const KIND_LABEL: Record<NotifKind, string> = {
   STALE_DEAL: "정체",
   OVERDUE_TASK: "지연",
   NO_CONTACT_KEY: "위험",
+  RENEWAL_DUE: "갱신 임박",
 };
 
 function loadReadIds(): Set<string> {
@@ -128,7 +160,16 @@ function saveReadIds(ids: Set<string>) {
 
 export function NotificationBell() {
   const version = useSalesVersion();
-  const notifications = useMemo(() => detectNotifications(), [version]);
+  const { rules } = useNotificationRules();
+  const notifications = useMemo(() => detectNotifications({
+    dormantDays: rules.dormantDays,
+    staleDealDays: rules.staleDealDays,
+    renewalWarnDays: rules.renewalWarnDays,
+    enableDormant: rules.enableDormant,
+    enableStaleDeal: rules.enableStaleDeal,
+    enableOverdueTask: rules.enableOverdueTask,
+    enableRenewal: rules.enableRenewal,
+  }), [version, rules]);
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Building2, Briefcase, Calendar, Target, BarChart3,
-  FileText, Settings, ListTodo,
+  FileText, Settings, ListTodo, TrendingUp, Bell, Shield, RefreshCw, ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { UserRole } from "@/lib/auth/types";
@@ -30,6 +30,8 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { href: "/crm/accounts",      label: "고객사", icon: Building2 },
       { href: "/crm/deals/kanban",  label: "딜 칸반", icon: Briefcase },
+      { href: "/crm/forecast",      label: "Forecast", icon: TrendingUp },
+      { href: "/crm/renewals",      label: "갱신 파이프", icon: RefreshCw },
       { href: "/crm/activities",    label: "활동", icon: Calendar },
       { href: "/tasks",             label: "태스크", icon: ListTodo },
     ],
@@ -53,7 +55,10 @@ const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "설정",
     items: [
-      { href: "/settings/org",       label: "조직 설정", icon: Settings, roles: ["SUPER_ADMIN"] },
+      { href: "/settings/notifications", label: "알림 룰", icon: Bell },
+      { href: "/settings/audit",         label: "감사 로그", icon: ScrollText },
+      { href: "/settings/permissions",   label: "권한", icon: Shield, roles: ["SUPER_ADMIN"] },
+      { href: "/settings/org",           label: "조직 설정", icon: Settings, roles: ["SUPER_ADMIN"] },
     ],
   },
 ];

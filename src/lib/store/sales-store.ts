@@ -5,6 +5,10 @@ import { MOCK_ACTIVITIES, MOCK_TASKS } from "../mock/activities";
 import { MOCK_DEALS, MOCK_STAGES } from "../mock/deals";
 import { MOCK_CRITICAL_6 } from "../mock/kpi";
 import type { Activity, Task, Deal, Critical6Item } from "../mock/types";
+import { recordAudit } from "./audit-log";
+
+// 현재 시연 액터 (auth 통합 전 mock 기본값)
+const DEFAULT_ACTOR = { id: "user-mock-1", name: "김민수" };
 
 /**
  * Lightweight reactive store — useSyncExternalStore 기반.
@@ -56,6 +60,13 @@ export function addActivity(input: Omit<Activity, "id" | "occurredAt"> & { occur
   if (a.accountId) {
     // mock account의 lastActivityAt도 업데이트하면 좋지만, 여기선 store가 최소 침습으로
   }
+  recordAudit({
+    action: "ACTIVITY_ADD",
+    actorId: a.userId, actorName: a.userName,
+    refType: "activity", refId: a.id,
+    summary: `${a.activityType} 활동 기록${a.accountName ? ` (${a.accountName})` : ""}`,
+    meta: { subject: a.subject, durationMinutes: a.durationMinutes },
+  });
   bump();
   return a;
 }
@@ -68,6 +79,12 @@ export function toggleTask(taskId: string): Task | null {
   if (!t) return null;
   t.status = t.status === "DONE" ? "TODO" : "DONE";
   if (t.status === "DONE") t.completedAt = new Date().toISOString();
+  recordAudit({
+    action: "TASK_TOGGLE",
+    actorId: DEFAULT_ACTOR.id, actorName: DEFAULT_ACTOR.name,
+    refType: "task", refId: t.id,
+    summary: `태스크 ${t.status === "DONE" ? "완료" : "미완료"}: ${t.title}`,
+  });
   bump();
   return t;
 }
@@ -79,6 +96,13 @@ export function addTask(input: Omit<Task, "id" | "status"> & { status?: Task["st
     ...input,
   };
   MOCK_TASKS.unshift(t);
+  recordAudit({
+    action: "TASK_ADD",
+    actorId: DEFAULT_ACTOR.id, actorName: DEFAULT_ACTOR.name,
+    refType: "task", refId: t.id,
+    summary: `태스크 추가: ${t.title}`,
+    meta: { priority: t.priority, channel: t.channel },
+  });
   bump();
   return t;
 }
@@ -86,7 +110,14 @@ export function addTask(input: Omit<Task, "id" | "status"> & { status?: Task["st
 export function deleteTask(taskId: string): boolean {
   const idx = MOCK_TASKS.findIndex((x) => x.id === taskId);
   if (idx < 0) return false;
+  const t = MOCK_TASKS[idx];
   MOCK_TASKS.splice(idx, 1);
+  recordAudit({
+    action: "TASK_DELETE",
+    actorId: DEFAULT_ACTOR.id, actorName: DEFAULT_ACTOR.name,
+    refType: "task", refId: t.id,
+    summary: `태스크 삭제: ${t.title}`,
+  });
   bump();
   return true;
 }
@@ -100,7 +131,15 @@ export function updateDeal(
 ): Deal | null {
   const d = MOCK_DEALS.find((x) => x.id === dealId);
   if (!d) return null;
+  const before = { amount: d.amount, expectedCloseDate: d.expectedCloseDate };
   Object.assign(d, patch);
+  recordAudit({
+    action: "DEAL_UPDATE",
+    actorId: d.ownerUserId, actorName: d.ownerName,
+    refType: "deal", refId: d.id,
+    summary: `딜 업데이트: ${d.name}`,
+    meta: { before, patch },
+  });
   bump();
   return d;
 }
@@ -111,6 +150,7 @@ export function moveDealStage(dealId: string, toStageId: string): Deal | null {
   const stage = MOCK_STAGES.find((s) => s.id === toStageId);
   if (!stage) return null;
 
+  const fromStageName = d.stageName;
   d.stageId = toStageId;
   d.stageName = stage.name;
   d.stageOrder = stage.orderNo;
@@ -128,6 +168,13 @@ export function moveDealStage(dealId: string, toStageId: string): Deal | null {
   // 연결된 Critical 6 자동 done 처리
   autoMarkLinkedC6Done(dealId);
 
+  recordAudit({
+    action: "DEAL_STAGE_MOVE",
+    actorId: d.ownerUserId, actorName: d.ownerName,
+    refType: "deal", refId: d.id,
+    summary: `딜 단계 이동: ${d.name} (${fromStageName} → ${stage.name})`,
+    meta: { from: fromStageName, to: stage.name, outcome: d.outcome },
+  });
   bump();
   return d;
 }
@@ -143,6 +190,13 @@ export function markDealWon(dealId: string, winReason: string): Deal | null {
   d.winReasonCode = winReason;
 
   autoMarkLinkedC6Done(dealId);
+  recordAudit({
+    action: "DEAL_WON",
+    actorId: d.ownerUserId, actorName: d.ownerName,
+    refType: "deal", refId: d.id,
+    summary: `🏆 딜 Win: ${d.name} (${d.amount.toLocaleString()}원)`,
+    meta: { winReason, amount: d.amount },
+  });
   bump();
   return d;
 }
@@ -156,6 +210,13 @@ export function markDealLost(dealId: string, lostReason: string): Deal | null {
   d.stageOrder = 10;
   d.probabilityPct = 0;
   d.lostReasonCode = lostReason;
+  recordAudit({
+    action: "DEAL_LOST",
+    actorId: d.ownerUserId, actorName: d.ownerName,
+    refType: "deal", refId: d.id,
+    summary: `❌ 딜 Lost: ${d.name}`,
+    meta: { lostReason, amount: d.amount },
+  });
   bump();
   return d;
 }
@@ -178,12 +239,24 @@ export function toggleCriticalSix(idx: number): boolean {
   const item = MOCK_CRITICAL_6[idx];
   if (!item) return false;
   item.done = !item.done;
+  recordAudit({
+    action: "C6_TOGGLE",
+    actorId: DEFAULT_ACTOR.id, actorName: DEFAULT_ACTOR.name,
+    refType: "critical6", refId: `c6-${idx}`,
+    summary: `Critical 6 ${item.done ? "완료" : "되돌림"}: ${item.title}`,
+  });
   bump();
   return item.done;
 }
 
 export function replaceCriticalSix(items: Critical6Item[]): void {
   MOCK_CRITICAL_6.splice(0, MOCK_CRITICAL_6.length, ...items);
+  recordAudit({
+    action: "C6_REPLACE",
+    actorId: DEFAULT_ACTOR.id, actorName: DEFAULT_ACTOR.name,
+    refType: "critical6", refId: "c6-week",
+    summary: `Critical 6 일괄 교체 (${items.length}건)`,
+  });
   bump();
 }
 
