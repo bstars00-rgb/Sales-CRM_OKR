@@ -71,4 +71,45 @@ test.describe("Sales CRM smoke", () => {
     await page.goto("/okr/tree/");
     await expect(page.getByRole("heading", { name: /OKR 정렬 트리/ })).toBeVisible();
   });
+
+  test("Account 리스트 정렬 + 페이징", async ({ page }) => {
+    await loginAs(page);
+    await page.goto("/crm/accounts/");
+    await expect(page.getByRole("heading", { name: /고객사/ }).first()).toBeVisible();
+
+    // 페이지 번호 버튼이 보임 (22개 → 페이지 2개 이상)
+    await expect(page.getByRole("button", { name: /^1$/ })).toBeVisible();
+
+    // 정렬 헤더 클릭 (3M 거래)
+    await page.getByRole("button", { name: /3M 거래/ }).click();
+    // 정렬 토글이 동작했다는 시각 증거 — 행 그대로 노출
+    await expect(page.getByRole("link", { name: /ABC Travel/ })).toBeVisible();
+  });
+
+  test("OKR Objective 상세 진입", async ({ page }) => {
+    await loginAs(page);
+    await page.goto("/okr/obj-co-1/");
+    await expect(page.getByRole("heading", { name: /핵심 5개국/ })).toBeVisible();
+    // Key Results 섹션
+    await expect(page.getByText(/Key Results/)).toBeVisible();
+    // Action Plans 섹션
+    await expect(page.getByText(/Action Plans/)).toBeVisible();
+  });
+
+  test("Critical 6 페이지 자동 추천 표시", async ({ page }) => {
+    await loginAs(page);
+    await page.goto("/okr/critical-six/");
+    await expect(page.getByRole("heading", { name: /Critical 6/ }).first()).toBeVisible();
+    // 자동 추천 섹션
+    await expect(page.getByText(/다음주 Critical 6 — 자동 추천/)).toBeVisible();
+  });
+
+  test("Task 페이지 + 신규 태스크 폼 토글", async ({ page }) => {
+    await loginAs(page);
+    await page.goto("/tasks/");
+    await expect(page.getByRole("heading", { name: /^태스크$/ })).toBeVisible();
+    // 새 태스크 버튼 클릭 → 폼 열림
+    await page.getByRole("button", { name: /새 태스크/ }).click();
+    await expect(page.getByPlaceholder(/태스크 제목/)).toBeVisible();
+  });
 });

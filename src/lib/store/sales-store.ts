@@ -23,6 +23,12 @@ function bump() {
   listeners.forEach((l) => l());
 }
 
+let idCounter = 0;
+function uniqueId(prefix: string): string {
+  idCounter++;
+  return `${prefix}-${Date.now()}-${idCounter}`;
+}
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);
@@ -41,7 +47,7 @@ export function useSalesVersion(): number {
 // ============================================================
 export function addActivity(input: Omit<Activity, "id" | "occurredAt"> & { occurredAt?: string }): Activity {
   const a: Activity = {
-    id: `act-new-${Date.now()}`,
+    id: uniqueId("act-new"),
     occurredAt: input.occurredAt ?? new Date().toISOString(),
     ...input,
   };
@@ -68,7 +74,7 @@ export function toggleTask(taskId: string): Task | null {
 
 export function addTask(input: Omit<Task, "id" | "status"> & { status?: Task["status"] }): Task {
   const t: Task = {
-    id: `task-new-${Date.now()}`,
+    id: uniqueId("task-new"),
     status: input.status ?? "TODO",
     ...input,
   };
