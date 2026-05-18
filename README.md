@@ -66,11 +66,24 @@ ELLIS에 없는 데이터 (OKR / Critical 6 / KPI 운영 / Brief 등)
 - **다음주 Critical 6 자동 생성** — 제출 시 교체
 - 자동 저장 indicator (1.5s debounce)
 
+### 운영 인프라 (v0.4)
+- 📈 **Pipeline Forecast** — Worst/Likely/Best 시나리오 + 단계/담당/월별 분포 + TOP 10
+- 🔁 **계약 갱신 파이프** — 만료일 추적 (긴급도 4단계) + 갱신 임박 자동 알림
+- 🏨 **호텔 지표** — RevPAR/ADR/Room Night + 시즌성 캘린더 + 통화 토글(KRW/USD/JPY/VND) + Commission
+- ⚙️ **알림 룰 설정** — 4종 토글 + 임계일 슬라이더 (localStorage 영속)
+- 📜 **감사 로그** — 모든 mutator 자동 기록 + 액션별 통계 + CSV 내보내기
+- 💾 **백업 / 복원** — JSON export/import (사용자 설정 5개 키)
+- 📥 **CSV 가져오기** — 템플릿 다운로드 + 미리보기 + 행별 검증
+- 🛡️ **권한 매트릭스** — 4역할 × 10리소스 (편집은 ELLIS 연동 후)
+
 ### UI / UX
 - 🌙 **다크모드 기본** (light / system 토글)
 - 🔍 **Cmd+K 전역 검색** — 172개 엔티티 (계정/딜/담당자/활동/태스크/OKR/페이지)
-- 🔔 **알림 센터** — 자동 감지 + 읽음/안읽음 + 분해 모달
+- 🔔 **알림 센터** — 자동 감지 + 읽음/안읽음 + 분해 모달 (사용자 룰 적용)
+- ⌨️ **키보드 단축키** — `?` 도움말 / `g+d/a/k/o` 이동 / `⌘K` 검색
+- 🚀 **온보딩 투어** — 첫 방문 시 8단계 가이드 (헤더 ? 버튼으로 재실행)
 - 🍞 **Toast** — 우하단 + 최대 4개 큐 + 자동 정리
+- 🚫 **친절한 404 / 에러** — 빠른 이동 5종 + 단축키 안내
 - ✨ Cross-screen reactivity — Activity 저장 → KPI/Lead/CEO/Brief 자동 갱신
 
 ## 🛠 기술 스택
@@ -135,14 +148,14 @@ npm run build:test    # test용 (basePath 없음)
 ## 📊 프로젝트 규모
 
 ```
-30+ commits
-~90 source files (TS+TSX)
-~12,000 lines of code
-30 page directories  
-32 components
-24 lib modules
+36+ commits
+~110 source files (TS+TSX)
+~16,000 lines of code
+40 page directories  
+35 components
+30 lib modules
 48 자동 테스트 (39 unit + 9 e2e)
-93+ static pages (동적 [id] 포함)
+115 static pages (동적 [id] 포함)
 ```
 
 ## 📁 프로젝트 구조
@@ -198,7 +211,8 @@ spec/
 | ✅ **v0.1** | UI 프로토타입 — 모든 화면, mock data | 완료 |
 | ✅ **v0.2** | Cross-screen reactivity, e2e CI, 48 자동 테스트 | 완료 |
 | ✅ **v0.3** | CSV / 즐겨찾기 / 단계 통계 / 분기 회고 | 완료 |
-| ⏳ **v0.4** | ELLIS REST API 통합 (스펙 수령 대기) | 대기 |
+| ✅ **v0.4** | Forecast / 갱신 파이프 / 알림 룰 / 감사 로그 / 호텔 지표(RevPAR/ADR/시즌/환율) / 백업/복원 / CSV import / 권한 / 온보딩 / 단축키 | 완료 |
+| ⏳ **v0.5** | ELLIS REST API 통합 (스펙 수령 대기) | 대기 |
 | **v1.0** | ELLIS 실 데이터로 mock 점진 교체 + 인증 통합 | 계획 |
 
 ## 📜 라이선스

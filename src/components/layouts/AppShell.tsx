@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { KeyboardShortcuts } from "./KeyboardShortcuts";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { getMockSession } from "@/lib/auth/session";
 import type { SessionUser } from "@/lib/auth/types";
 
@@ -95,6 +97,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="p-4 md:p-6 max-w-[1600px] mx-auto">{children}</div>
         </main>
       </div>
+
+      {/* 전역 단축키 도움말 + 첫 방문 온보딩 */}
+      <KeyboardShortcuts />
+      <OnboardingTour />
     </div>
   );
 }

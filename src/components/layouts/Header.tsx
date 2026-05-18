@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Search, LogOut, ChevronDown, Zap } from "lucide-react";
+import { Search, LogOut, ChevronDown, Zap, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -57,6 +57,36 @@ export function Header({ session }: { session: SessionUser }) {
       >
         <Zap className="h-4 w-4" />활동 기록
       </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent transition-colors"
+          aria-label="도움말"
+          title="도움말 (?)"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>도움말</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => {
+              const ev = new KeyboardEvent("keydown", { key: "?" });
+              window.dispatchEvent(ev);
+            }}
+            className="cursor-pointer flex items-center justify-between"
+          >
+            <span>키보드 단축키</span>
+            <kbd className="text-xs bg-muted/60 border rounded px-1.5 font-mono">?</kbd>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.dispatchEvent(new CustomEvent("sales-crm:open-onboarding"))}
+            className="cursor-pointer"
+          >
+            온보딩 투어 다시 보기
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <ThemeToggle />
       <NotificationBell />
