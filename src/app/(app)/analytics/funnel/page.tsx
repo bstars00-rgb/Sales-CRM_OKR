@@ -9,6 +9,7 @@ import { MOCK_DEALS, MOCK_STAGES } from "@/lib/mock/deals";
 import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
 import { Filter, ArrowLeft, AlertTriangle, Clock } from "lucide-react";
+import { PrintButton } from "@/components/common/PrintButton";
 import { cn } from "@/lib/utils/cn";
 
 const STAGE_AVG_DAYS = 7; // 단계 평균 기대일 (정체 판단용)
@@ -76,17 +77,20 @@ export default function FunnelPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <Button variant="ghost" size="sm" asChild className="mb-2">
-          <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Filter className="h-6 w-6 text-warning" />
-          Sales Funnel
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          OPEN {totalOpen}건 + WON {wonCount}건 + LOST {lostCount}건 · 단계별 conversion + 병목 진단
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-2">
+        <div>
+          <Button variant="ghost" size="sm" asChild className="mb-2">
+            <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Filter className="h-6 w-6 text-warning" />
+            Sales Funnel
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            OPEN {totalOpen}건 + WON {wonCount}건 + LOST {lostCount}건 · 단계별 conversion + 병목 진단
+          </p>
+        </div>
+        <PrintButton />
       </div>
 
       {/* 병목 인사이트 */}

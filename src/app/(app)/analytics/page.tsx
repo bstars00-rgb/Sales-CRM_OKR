@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PrintButton } from "@/components/common/PrintButton";
 import { MOCK_DEALS } from "@/lib/mock/deals";
 import { MOCK_ACTIVITIES } from "@/lib/mock/activities";
 import { useSalesVersion } from "@/lib/store/sales-store";
@@ -72,14 +73,17 @@ export default function AnalyticsIndexPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-primary" />
-          Analytics
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          영업 데이터를 분기 회고·OKR 설정·임원 보고에 활용 가능한 형태로 가공.
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-primary" />
+            Analytics
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            영업 데이터를 분기 회고·OKR 설정·임원 보고에 활용 가능한 형태로 가공.
+          </p>
+        </div>
+        <PrintButton label="요약 인쇄/PDF" />
       </div>
 
       {/* 상단 KPI 요약 */}

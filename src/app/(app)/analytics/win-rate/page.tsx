@@ -10,6 +10,7 @@ import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
 import { Target, ArrowLeft, TrendingUp } from "lucide-react";
+import { PrintButton } from "@/components/common/PrintButton";
 import { cn } from "@/lib/utils/cn";
 
 interface WinRateRow {
@@ -103,17 +104,20 @@ export default function WinRatePage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <Button variant="ghost" size="sm" asChild className="mb-2">
-          <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Target className="h-6 w-6 text-success" />
-          Win Rate by Segment
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          전체 종결 {totalClosed}건 · 평균 Win Rate {formatPercent(overallRate, 1)}
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-2">
+        <div>
+          <Button variant="ghost" size="sm" asChild className="mb-2">
+            <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Target className="h-6 w-6 text-success" />
+            Win Rate by Segment
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            전체 종결 {totalClosed}건 · 평균 Win Rate {formatPercent(overallRate, 1)}
+          </p>
+        </div>
+        <PrintButton />
       </div>
 
       {/* 인사이트 */}

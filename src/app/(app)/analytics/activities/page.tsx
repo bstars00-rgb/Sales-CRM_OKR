@@ -10,6 +10,7 @@ import { MOCK_ACTIVITIES } from "@/lib/mock/activities";
 import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency, formatNumber } from "@/lib/utils/format";
 import { MessageSquare, ArrowLeft, Sparkles } from "lucide-react";
+import { PrintButton } from "@/components/common/PrintButton";
 import { cn } from "@/lib/utils/cn";
 
 const ACTIVITY_ICON: Record<string, string> = {
@@ -100,17 +101,20 @@ export default function ActivitiesCorrelationPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <Button variant="ghost" size="sm" asChild className="mb-2">
-          <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <MessageSquare className="h-6 w-6 text-primary" />
-          활동 → 매출 상관관계
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          전체 활동 {formatNumber(MOCK_ACTIVITIES.length)}건 · 결과별 평균 접점 수 + 채널 효과
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-2">
+        <div>
+          <Button variant="ghost" size="sm" asChild className="mb-2">
+            <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <MessageSquare className="h-6 w-6 text-primary" />
+            활동 → 매출 상관관계
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            전체 활동 {formatNumber(MOCK_ACTIVITIES.length)}건 · 결과별 평균 접점 수 + 채널 효과
+          </p>
+        </div>
+        <PrintButton />
       </div>
 
       {/* 핵심 비교 — WON vs LOST 활동 수 */}

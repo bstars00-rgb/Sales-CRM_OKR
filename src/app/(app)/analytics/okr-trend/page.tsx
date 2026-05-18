@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getObjectivesWithAutoProgress } from "@/lib/okr/auto-progress";
 import { LineChart, ArrowLeft, Sparkles } from "lucide-react";
+import { PrintButton } from "@/components/common/PrintButton";
 import { cn } from "@/lib/utils/cn";
 
 // 분기 라벨 + Mock 진척률 — 현실에서는 OKR 분기별 스냅샷이 저장돼야 하지만,
@@ -74,17 +75,20 @@ export default function OkrTrendPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <Button variant="ghost" size="sm" asChild className="mb-2">
-          <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <LineChart className="h-6 w-6 text-primary" />
-          OKR 분기 트렌드
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {objectives.length} Objective · {totalKrs} KR · {autoKrs}개 자동 진척 (CRM 데이터 연동)
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-2">
+        <div>
+          <Button variant="ghost" size="sm" asChild className="mb-2">
+            <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <LineChart className="h-6 w-6 text-primary" />
+            OKR 분기 트렌드
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {objectives.length} Objective · {totalKrs} KR · {autoKrs}개 자동 진척 (CRM 데이터 연동)
+          </p>
+        </div>
+        <PrintButton />
       </div>
 
       {/* 트렌드 인사이트 */}

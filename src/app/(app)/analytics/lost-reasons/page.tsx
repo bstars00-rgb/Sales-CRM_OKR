@@ -9,6 +9,7 @@ import { MOCK_DEALS } from "@/lib/mock/deals";
 import { useSalesVersion } from "@/lib/store/sales-store";
 import { LOST_REASONS, CATEGORY_META, getLostReason } from "@/lib/analytics/reason-codes";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
+import { PrintButton } from "@/components/common/PrintButton";
 import { TrendingDown, ArrowLeft, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -81,7 +82,7 @@ export default function LostReasonsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between flex-wrap gap-2">
         <div>
           <Button variant="ghost" size="sm" asChild className="mb-2">
             <Link href="/analytics"><ArrowLeft className="h-4 w-4" />분석 인덱스</Link>
@@ -94,6 +95,7 @@ export default function LostReasonsPage() {
             LOST {lostDeals.length}건 · 총 {formatCurrency(totalAmount)} 손실 가치
           </p>
         </div>
+        <PrintButton />
       </div>
 
       {/* 인사이트 */}

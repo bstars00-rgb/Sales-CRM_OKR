@@ -24,7 +24,7 @@ import {
   useSalesVersion,
 } from "@/lib/store/sales-store";
 import { formatCurrency, relativeTime, formatPercent } from "@/lib/utils/format";
-import { ArrowLeft, Trophy, X, AlertTriangle, Users, Calendar, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowLeft, Trophy, X, AlertTriangle, Users, Calendar, CheckCircle2, Sparkles, FileText } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CommentSection } from "@/components/collab/CommentSection";
 import { FollowButton } from "@/components/collab/FollowButton";
@@ -103,6 +103,11 @@ export function DealDetailClient({ id }: { id: string }) {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/crm/deals/${deal.id}/quote`}>
+              <FileText className="h-4 w-4" />견적서
+            </Link>
+          </Button>
           <FollowButton refType="deal" refId={deal.id} />
           {isOpen && (
             <>
