@@ -3,8 +3,9 @@
 import { useSyncExternalStore } from "react";
 import { MOCK_ACTIVITIES, MOCK_TASKS } from "../mock/activities";
 import { MOCK_DEALS, MOCK_STAGES } from "../mock/deals";
+import { MOCK_ACCOUNTS } from "../mock/accounts";
 import { MOCK_CRITICAL_6 } from "../mock/kpi";
-import type { Activity, Task, Deal, Critical6Item } from "../mock/types";
+import type { Activity, Task, Deal, Account, Critical6Item } from "../mock/types";
 import { recordAudit } from "./audit-log";
 
 // 현재 시연 액터 (auth 통합 전 mock 기본값)
@@ -247,6 +248,33 @@ export function toggleCriticalSix(idx: number): boolean {
   });
   bump();
   return item.done;
+}
+
+// ============================================================
+// Accounts (CSV 가져오기용 — 최소 mutator)
+// ============================================================
+export function addAccounts(rows: Account[]): { added: number; skipped: number } {
+  let added = 0;
+  let skipped = 0;
+  for (const a of rows) {
+    if (MOCK_ACCOUNTS.find((x) => x.id === a.id)) {
+      skipped++;
+      continue;
+    }
+    MOCK_ACCOUNTS.unshift(a);
+    added++;
+  }
+  if (added > 0) {
+    recordAudit({
+      action: "ACTIVITY_ADD",  // 별도 action 추가하면 좋지만 일단 재사용
+      actorId: DEFAULT_ACTOR.id, actorName: DEFAULT_ACTOR.name,
+      refType: "activity", refId: `import-${Date.now()}`,
+      summary: `CSV 가져오기: 고객사 ${added}개 추가 (${skipped}개 중복 스킵)`,
+      meta: { added, skipped },
+    });
+    bump();
+  }
+  return { added, skipped };
 }
 
 export function replaceCriticalSix(items: Critical6Item[]): void {

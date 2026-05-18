@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Building2, Briefcase, Calendar, Target, BarChart3,
   FileText, Settings, ListTodo, TrendingUp, Bell, Shield, RefreshCw, ScrollText, Hotel,
+  Save, Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { UserRole } from "@/lib/auth/types";
@@ -58,7 +59,9 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { href: "/settings/notifications", label: "알림 룰", icon: Bell },
       { href: "/settings/audit",         label: "감사 로그", icon: ScrollText },
-      { href: "/settings/permissions",   label: "권한", icon: Shield, roles: ["SUPER_ADMIN"] },
+      { href: "/settings/import",        label: "CSV 가져오기", icon: Upload },
+      { href: "/settings/backup",        label: "백업/복원", icon: Save },
+      { href: "/settings/permissions",   label: "권한", icon: Shield },
       { href: "/settings/org",           label: "조직 설정", icon: Settings, roles: ["SUPER_ADMIN"] },
     ],
   },
