@@ -42,6 +42,7 @@ const PAGES: SearchResult[] = [
   { kind: "page", id: "p14", title: "Analytics — Win Rate",      icon: BarChart3, href: "/analytics/win-rate" },
   { kind: "page", id: "p15", title: "Analytics — 활동 상관관계", icon: BarChart3, href: "/analytics/activities" },
   { kind: "page", id: "p16", title: "Analytics — OKR 트렌드",    icon: BarChart3, href: "/analytics/okr-trend" },
+  { kind: "page", id: "p17", title: "1on1 노트",                 icon: User,      href: "/team/one-on-ones" },
 ];
 
 export function CommandK() {

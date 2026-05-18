@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Building2, Briefcase, Calendar, Target, BarChart3,
   FileText, Settings, ListTodo, TrendingUp, Bell, Shield, RefreshCw, ScrollText, Hotel,
-  Save, Upload,
+  Save, Upload, MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { UserRole } from "@/lib/auth/types";
@@ -53,6 +53,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/brief",              label: "내 주간보고", icon: FileText },
       { href: "/brief/team",         label: "팀 주간보고", icon: FileText, roles: ["SUPER_ADMIN", "SALES_LEAD"] },
       { href: "/brief/company",      label: "회사 주간보고", icon: FileText, roles: ["SUPER_ADMIN"] },
+    ],
+  },
+  {
+    section: "팀",
+    items: [
+      { href: "/team/one-on-ones",   label: "1on1 노트", icon: MessageSquare, roles: ["SUPER_ADMIN", "SALES_LEAD"] },
     ],
   },
   {

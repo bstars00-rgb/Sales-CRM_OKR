@@ -26,6 +26,8 @@ import {
 import { formatCurrency, relativeTime, formatPercent } from "@/lib/utils/format";
 import { ArrowLeft, Trophy, X, AlertTriangle, Users, Calendar, CheckCircle2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { CommentSection } from "@/components/collab/CommentSection";
+import { FollowButton } from "@/components/collab/FollowButton";
 
 const ACTIVITY_ICON: Record<string, string> = {
   CALL: "📞", MEETING: "📅", EMAIL_LOG: "✉", MESSENGER: "💬",
@@ -100,7 +102,8 @@ export function DealDetailClient({ id }: { id: string }) {
             <span>· 담당 {deal.ownerName}</span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <FollowButton refType="deal" refId={deal.id} />
           {isOpen && (
             <>
               <Button variant="outline" size="sm" onClick={() => setLostOpen(true)}>
@@ -262,6 +265,9 @@ export function DealDetailClient({ id }: { id: string }) {
           </Card>
         </aside>
       </div>
+
+      {/* 댓글 섹션 */}
+      <CommentSection refType="deal" refId={deal.id} title="딜 코멘트" />
 
       {/* Win Modal */}
       <Dialog open={winOpen} onOpenChange={setWinOpen}>

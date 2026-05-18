@@ -17,12 +17,16 @@ import { MOCK_TASKS } from "@/lib/mock/activities";
 import { MOCK_CONTRACTS, getDaysUntilExpiry, getRenewalUrgency } from "@/lib/mock/contracts";
 import { useSalesVersion } from "@/lib/store/sales-store";
 import { useNotificationRules } from "@/lib/store/notification-rules";
+import { getAllComments } from "@/lib/store/comments";
+import { getFollowingIds } from "@/lib/store/follows";
 import { formatCurrency, relativeTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
 const READ_STORAGE_KEY = "sales-crm-notif-read";
 
-type NotifKind = "DORMANT" | "STALE_DEAL" | "OVERDUE_TASK" | "NO_CONTACT_KEY" | "RENEWAL_DUE";
+type NotifKind = "DORMANT" | "STALE_DEAL" | "OVERDUE_TASK" | "NO_CONTACT_KEY" | "RENEWAL_DUE" | "MENTION" | "FOLLOWED_CHANGE";
+
+const CURRENT_USER_ID = "user-mock-1"; // mock 세션 (멘션 수신자)
 
 interface Notification {
   id: string;
@@ -106,7 +110,42 @@ function detectNotifications(opts: DetectOpts): Notification[] {
     });
   }
 
-  // 4) 지연된 태스크
+  // 4a) @멘션 받은 댓글 (룰: 항상 활성)
+  const mentions = getAllComments().filter((c) => c.mentions.includes(CURRENT_USER_ID));
+  for (const c of mentions) {
+    out.push({
+      id: `mention-${c.id}`, kind: "MENTION",
+      severity: "HIGH",
+      title: `💬 ${c.authorName}님이 멘션`,
+      detail: `${c.refType === "deal" ? "딜" : "고객사"} · ${c.body.slice(0, 60)}${c.body.length > 60 ? "…" : ""}`,
+      href: c.refType === "deal" ? `/crm/deals/${c.refId}` : `/crm/accounts/${c.refId}`,
+      ageMs: ageMs(c.createdAt),
+      refType: c.refType === "deal" ? "deal" : "account",
+      refId: c.refId,
+    });
+  }
+
+  // 4b) 구독 중인 딜의 정체 알림 (이미 STALE_DEAL이 있지만 follow 받았다고 표시)
+  const followedDealIds = getFollowingIds("deal");
+  for (const dealId of followedDealIds) {
+    const d = MOCK_DEALS.find((x) => x.id === dealId);
+    if (!d) continue;
+    if (d.outcome !== "OPEN") continue;
+    // 단계 이동/금액 변경은 audit-log에서 감지하면 좋지만, 간단히 daysInStage 5+ 이상이면 구독 알림
+    if (d.daysInStage >= 5) {
+      out.push({
+        id: `follow-deal-${d.id}`, kind: "FOLLOWED_CHANGE",
+        severity: "LOW",
+        title: `🔔 구독 중: ${d.name}`,
+        detail: `${d.stageName} · ${d.daysInStage}일째`,
+        href: `/crm/deals/${d.id}`,
+        ageMs: d.daysInStage * 86400000,
+        refType: "deal", refId: d.id,
+      });
+    }
+  }
+
+  // 5) 지연된 태스크
   if (opts.enableOverdueTask) for (const t of MOCK_TASKS) {
     if (t.status !== "TODO" || !t.dueAt) continue;
     const due = new Date(t.dueAt).getTime();
@@ -137,6 +176,8 @@ const KIND_LABEL: Record<NotifKind, string> = {
   OVERDUE_TASK: "지연",
   NO_CONTACT_KEY: "위험",
   RENEWAL_DUE: "갱신 임박",
+  MENTION: "@멘션",
+  FOLLOWED_CHANGE: "구독",
 };
 
 function loadReadIds(): Set<string> {

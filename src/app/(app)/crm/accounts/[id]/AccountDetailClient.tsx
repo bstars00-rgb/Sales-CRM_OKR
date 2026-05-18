@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GradeBadge, StatusBadge, SegmentBadge, CountryFlag, RiskDot } from "@/components/crm/AccountBadges";
 import { useActivityWizard } from "@/components/crm/ActivityWizard";
 import { AccountMemoPanel } from "@/components/crm/AccountMemoPanel";
+import { CommentSection } from "@/components/collab/CommentSection";
+import { FollowButton } from "@/components/collab/FollowButton";
 import { AccountRevenueChart } from "@/components/crm/AccountRevenueChart";
 import { InlineActivityForm } from "@/components/crm/InlineActivityForm";
 import { useSalesVersion } from "@/lib/store/sales-store";
@@ -90,6 +92,7 @@ export function AccountDetailClient({ id }: { id: string }) {
               <Button variant="outline" onClick={() => wizard.open({ accountId: account.id, accountName: account.name })}>
                 <Calendar className="h-4 w-4" />활동 기록
               </Button>
+              <FollowButton refType="account" refId={account.id} />
             </div>
           </div>
         </CardContent>
@@ -105,6 +108,7 @@ export function AccountDetailClient({ id }: { id: string }) {
                 <TabsTrigger value="deals">딜 ({deals.length})</TabsTrigger>
                 <TabsTrigger value="activities">활동 ({activities.length})</TabsTrigger>
                 <TabsTrigger value="memo">메모</TabsTrigger>
+                <TabsTrigger value="comments">💬 댓글</TabsTrigger>
               </TabsList>
             </div>
 
@@ -264,6 +268,10 @@ export function AccountDetailClient({ id }: { id: string }) {
 
             <TabsContent value="memo">
               <AccountMemoPanel accountId={account.id} />
+            </TabsContent>
+
+            <TabsContent value="comments">
+              <CommentSection refType="account" refId={account.id} title="내부 코멘트" />
             </TabsContent>
           </Tabs>
         </div>
