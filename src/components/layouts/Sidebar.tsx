@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Building2, Briefcase, Calendar, Target, BarChart3,
-  FileText, Settings, ListTodo, TrendingUp, Bell, Shield, RefreshCw, ScrollText,
+  FileText, Settings, ListTodo, TrendingUp, Bell, Shield, RefreshCw, ScrollText, Hotel,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { UserRole } from "@/lib/auth/types";
@@ -31,6 +31,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/crm/accounts",      label: "고객사", icon: Building2 },
       { href: "/crm/deals/kanban",  label: "딜 칸반", icon: Briefcase },
       { href: "/crm/forecast",      label: "Forecast", icon: TrendingUp },
+      { href: "/crm/hotel-metrics", label: "호텔 지표", icon: Hotel },
       { href: "/crm/renewals",      label: "갱신 파이프", icon: RefreshCw },
       { href: "/crm/activities",    label: "활동", icon: Calendar },
       { href: "/tasks",             label: "태스크", icon: ListTodo },
