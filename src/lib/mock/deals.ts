@@ -117,3 +117,24 @@ function d(
     stageId, stageName, stageOrder, daysInStage, countryCode, grade, blockers,
   };
 }
+
+// ── 시드 WON/LOST 딜에 사유 코드 주입 (분석 페이지용)
+// 코드 카탈로그는 lib/analytics/reason-codes.ts 참고
+(function injectReasons() {
+  const winReasons: Record<string, string> = {
+    "deal-8":  "PRICE_COMPETITIVE",
+    "deal-9":  "RELATIONSHIP_DEEP",
+    "deal-35": "FAST_RESPONSE",
+    "deal-36": "UPSELL_PROVEN",
+    "deal-37": "RENEWAL_AUTO",
+  };
+  const lostReasons: Record<string, string> = {
+    "deal-10": "PRICE_TOO_HIGH",
+    "deal-38": "FEATURE_GAP",
+    "deal-39": "COMPETITOR_WON",
+  };
+  for (const dd of MOCK_DEALS) {
+    if (dd.outcome === "WON" && winReasons[dd.id]) dd.winReasonCode = winReasons[dd.id];
+    if (dd.outcome === "LOST" && lostReasons[dd.id]) dd.lostReasonCode = lostReasons[dd.id];
+  }
+})();

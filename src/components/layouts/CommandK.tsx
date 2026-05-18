@@ -14,7 +14,7 @@ import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
 import { MOCK_OBJECTIVES } from "@/lib/mock/kpi";
 import { useSalesVersion } from "@/lib/store/sales-store";
 import { relativeTime } from "@/lib/utils/format";
-import { Search, Building2, Briefcase, User, LayoutDashboard, Target, FileText, ListTodo, Calendar, CheckSquare } from "lucide-react";
+import { Search, Building2, Briefcase, User, LayoutDashboard, Target, FileText, ListTodo, Calendar, CheckSquare, BarChart3 } from "lucide-react";
 
 interface SearchResult {
   kind: "account" | "deal" | "contact" | "activity" | "task" | "okr" | "page";
@@ -37,6 +37,11 @@ const PAGES: SearchResult[] = [
   { kind: "page", id: "p9", title: "Critical 6",     icon: Target,          href: "/okr/critical-six" },
   { kind: "page", id: "p10", title: "KPI · 인센티브", icon: LayoutDashboard, href: "/kpi" },
   { kind: "page", id: "p11", title: "내 주간보고",    icon: FileText,        href: "/brief" },
+  { kind: "page", id: "p12", title: "Analytics — Lost Reason",   icon: BarChart3, href: "/analytics/lost-reasons" },
+  { kind: "page", id: "p13", title: "Analytics — Sales Funnel",  icon: BarChart3, href: "/analytics/funnel" },
+  { kind: "page", id: "p14", title: "Analytics — Win Rate",      icon: BarChart3, href: "/analytics/win-rate" },
+  { kind: "page", id: "p15", title: "Analytics — 활동 상관관계", icon: BarChart3, href: "/analytics/activities" },
+  { kind: "page", id: "p16", title: "Analytics — OKR 트렌드",    icon: BarChart3, href: "/analytics/okr-trend" },
 ];
 
 export function CommandK() {

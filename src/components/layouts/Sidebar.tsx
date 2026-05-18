@@ -44,6 +44,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/okr",                label: "OKR", icon: Target },
       { href: "/okr/critical-six",   label: "Critical 6", icon: Target },
       { href: "/kpi",                label: "KPI · 인센티브", icon: BarChart3 },
+      { href: "/analytics",          label: "Analytics", icon: BarChart3 },
     ],
   },
   {
