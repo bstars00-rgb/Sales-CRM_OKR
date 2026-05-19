@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true  # 이전 run 막힘 방지
 
 jobs:
   build:
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          # cache: npm 임시 제거 — lockfile hash 검증이 startup failure 원인 가능
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
