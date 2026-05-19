@@ -5,17 +5,21 @@ import { test, expect, type Page } from "@playwright/test";
  * mock 인증·mock 데이터 가정.
  */
 
-const MANAGER_SESSION = {
-  id: "user-manager",
+const MEMBER_SESSION = {
+  id: "user-mock-1",
   orgId: "00000000-0000-0000-0000-000000000001",
-  teamId: "team-korea",
-  role: "SALES_MANAGER",
+  teamId: "team-kr",
+  role: "MEMBER",
   name: "김민수",
-  email: "manager@demo.com",
-  jobTitle: "Sales Manager",
+  email: "member@demo.com",
+  jobTitle: "Sales (Korea Team)",
   locale: "ko",
   timezone: "Asia/Seoul",
+  countries: ["KR", "VN"],
 };
+
+// 호환: 기존 변수명 alias (default = MEMBER)
+const MANAGER_SESSION = MEMBER_SESSION;
 
 async function loginAs(page: Page, session = MANAGER_SESSION) {
   // 페이지 로드 전 localStorage에 세션을 주입 — AppShell의 useEffect가 mount 시점에 읽음
@@ -36,10 +40,12 @@ test.describe("Sales CRM smoke", () => {
     await page.goto("/dashboard/manager/");
 
     await expect(page.getByRole("heading", { name: /내 대시보드/ })).toBeVisible();
-    // Critical 6 카드 (CardTitle에 들어가는 굵은 텍스트)
-    await expect(page.getByText(/Critical 6/).first()).toBeVisible();
-    // 내 핵심 고객사 섹션
-    await expect(page.getByText(/핵심 고객사/)).toBeVisible();
+    // 데일리 크리티컬 카드
+    await expect(page.getByText(/데일리 크리티컬/).first()).toBeVisible();
+    // 핵심 고객사 빠른 진입 카드
+    await expect(page.getByText(/핵심 고객사/).first()).toBeVisible();
+    // TTV KPI 카드 (체크아웃 기준 YTD)
+    await expect(page.getByText(/^TTV$/).first()).toBeVisible();
   });
 
   test("고객사 상세 → 미팅 모드 진입", async ({ page }) => {
