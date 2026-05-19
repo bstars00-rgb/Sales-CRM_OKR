@@ -22,6 +22,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "대시보드",
     items: [
       { href: "/dashboard/manager", label: "내 대시보드", icon: LayoutDashboard },
+      { href: "/digest",            label: "다이제스트", icon: Bell },
       { href: "/dashboard/lead",    label: "팀 대시보드", icon: BarChart3, roles: ["SUPER_ADMIN", "SALES_LEAD"] },
       { href: "/dashboard/ceo",     label: "회사 대시보드", icon: BarChart3, roles: ["SUPER_ADMIN"] },
     ],

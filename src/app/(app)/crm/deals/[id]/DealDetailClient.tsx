@@ -28,6 +28,8 @@ import { ArrowLeft, Trophy, X, AlertTriangle, Users, Calendar, CheckCircle2, Spa
 import { cn } from "@/lib/utils/cn";
 import { CommentSection } from "@/components/collab/CommentSection";
 import { FollowButton } from "@/components/collab/FollowButton";
+import { assessDealRisk, RISK_LEVEL_META } from "@/lib/analytics/risk-score";
+import { suggestNextActions, PRIORITY_META } from "@/lib/analytics/next-action";
 
 const ACTIVITY_ICON: Record<string, string> = {
   CALL: "📞", MEETING: "📅", EMAIL_LOG: "✉", MESSENGER: "💬",
@@ -268,6 +270,96 @@ export function DealDetailClient({ id }: { id: string }) {
               <div className="text-xs text-muted-foreground mt-1">{deal.daysInStage}일 단계 체류 중</div>
             </CardContent>
           </Card>
+
+          {/* 위험도 + 다음 액션 — OPEN 딜에만 */}
+          {isOpen && (() => {
+            const risk = assessDealRisk(deal);
+            const meta = RISK_LEVEL_META[risk.level];
+            const nextActions = suggestNextActions(deal, 3);
+            return (
+              <>
+                <Card className={cn(
+                  meta.tone === "destructive" && "border-destructive/40",
+                  meta.tone === "warning" && "border-warning/40",
+                )}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />위험도
+                      </span>
+                      <Badge variant={meta.tone}>
+                        {meta.emoji} {meta.label} · {risk.score}/100
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="h-2 bg-muted/30 rounded overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full",
+                          risk.level === "CRITICAL" || risk.level === "HIGH" ? "bg-destructive" :
+                          risk.level === "MID" ? "bg-warning" : "bg-success"
+                        )}
+                        style={{ width: `${risk.score}%` }}
+                      />
+                    </div>
+                    {risk.signals.filter((s) => s.triggered).length > 0 && (
+                      <details className="text-xs">
+                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                          시그널 보기 ({risk.signals.filter((s) => s.triggered).length})
+                        </summary>
+                        <ul className="mt-2 space-y-1">
+                          {risk.signals.filter((s) => s.triggered).sort((a, b) => b.weight - a.weight).map((s) => (
+                            <li key={s.code} className="flex justify-between gap-2">
+                              <span className="text-muted-foreground">· {s.label}</span>
+                              <span className="font-medium tabular-nums">+{s.weight}</span>
+                            </li>
+                          ))}
+                          {risk.signals.filter((s) => s.triggered).map((s) => s.detail).filter(Boolean).slice(0, 3).map((d, i) => (
+                            <li key={`detail-${i}`} className="text-[10px] text-muted-foreground pl-2">{d}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                    <div className="text-xs bg-muted/40 rounded p-2 mt-2">
+                      💡 {risk.recommendation}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {nextActions.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" />다음 액션 추천
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {nextActions.map((a, i) => {
+                        const pm = PRIORITY_META[a.priority];
+                        return (
+                          <div key={i} className="border-l-2 border-primary/40 pl-3 py-1">
+                            <div className="flex items-center gap-1.5">
+                              <span>{a.emoji}</span>
+                              <span className="text-sm font-medium">{a.title}</span>
+                              <Badge variant={pm.tone} className="text-[9px] ml-auto shrink-0">{pm.label}</Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{a.reason}</div>
+                            {a.suggestedChannel && (
+                              <div className="text-[10px] text-primary mt-0.5">→ {a.suggestedChannel}</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <div className="text-[10px] text-muted-foreground pt-1">
+                        💡 룰 기반 추천. ELLIS 연동 후 LLM 보강 예정.
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            );
+          })()}
         </aside>
       </div>
 
