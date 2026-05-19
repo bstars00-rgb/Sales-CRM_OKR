@@ -74,12 +74,11 @@ jobs:
         with:
           path: ./out
 
+  # NOTE: deploy job 임시 분리 — environment "github-pages"가 startup failure 원인인지 격리
+  # 작동 확인 후 복구 예정
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
