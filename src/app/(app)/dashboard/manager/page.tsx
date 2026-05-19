@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth/useSession";
-import { computeYtdKpi, type KpiSnapshot } from "@/lib/dashboard/ytd-kpi";
+import { type KpiSnapshot } from "@/lib/dashboard/ytd-kpi";
+import { syncYtdKpi, formatAsOf, type KpiSyncResult } from "@/lib/ellis/metrics-sync";
 import { getDailyCritical, PRIORITY_BADGE } from "@/lib/dashboard/daily-critical";
 import { MOCK_DEALS, MOCK_STAGES } from "@/lib/mock/deals";
 import { MOCK_ACCOUNTS } from "@/lib/mock/accounts";
 import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency, formatNumber, relativeTime } from "@/lib/utils/format";
-import { AlertTriangle, ArrowRight, TrendingUp, TrendingDown, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowRight, TrendingUp, TrendingDown, Sparkles, RefreshCw, Database } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 export default function ManagerDashboardPage() {
@@ -25,8 +26,25 @@ export default function ManagerDashboardPage() {
 
   const today = new Date();
 
-  // ── 5종 KPI (YTD, 체크아웃 기준)
-  const kpis = useMemo(() => computeYtdKpi({ userId, role }, today), [userId, role, version]);
+  // ── 5종 KPI — ELLIS 동기화 (mock fallback)
+  const [kpiResult, setKpiResult] = useState<KpiSyncResult | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchKpi = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const result = await syncYtdKpi({ userId, role });
+      setKpiResult(result);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [userId, role]);
+
+  useEffect(() => {
+    fetchKpi();
+  }, [fetchKpi, version]);
+
+  const kpis = kpiResult?.metrics ?? [];
 
   // ── 데일리 크리티컬
   const daily = useMemo(() => getDailyCritical(userId, role, 6), [userId, role, version]);
@@ -92,11 +110,57 @@ export default function ManagerDashboardPage() {
         </div>
       </div>
 
+      {/* 데이터 동기화 상태 바 */}
+      <Card className="bg-muted/30 border-dashed">
+        <CardContent className="py-2.5 px-4 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-xs">
+            <Database className="h-3.5 w-3.5 text-primary" />
+            <span className="text-muted-foreground">데이터 기준:</span>
+            <span className="font-medium">
+              {kpiResult ? formatAsOf(kpiResult) : "로딩 중..."}
+            </span>
+            {kpiResult && (
+              <Badge variant={kpiResult.source === "ELLIS" ? "success" : "muted"} className="text-[9px] ml-1">
+                {kpiResult.source === "ELLIS" ? "● ELLIS 실데이터" : "○ Mock"}
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground hidden md:inline">
+              매일 04:00 KST 자동 동기화
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchKpi}
+              disabled={refreshing}
+              className="h-7 text-xs"
+              aria-label="새로고침"
+            >
+              <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
+              {refreshing ? "동기화 중..." : "새로고침"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 5종 KPI 카드 (체크아웃 기준 YTD) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {kpis.map((kpi) => (
-          <KpiCard key={kpi.code} kpi={kpi} />
-        ))}
+        {kpis.length === 0 ? (
+          // 로딩 스켈레톤 (5개)
+          Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4 space-y-2">
+                <div className="h-3 bg-muted rounded w-2/3" />
+                <div className="h-7 bg-muted rounded w-3/4" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+                <div className="h-1.5 bg-muted rounded" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          kpis.map((kpi) => <KpiCard key={kpi.code} kpi={kpi} />)
+        )}
       </div>
 
       {/* 2열: 데일리 크리티컬 + 파이프라인 */}
