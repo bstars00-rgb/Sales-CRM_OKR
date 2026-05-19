@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true  # 이전 run 막힘 방지
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -23,21 +23,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          # cache: npm 임시 제거 — lockfile hash 검증이 startup failure 원인 가능
+          cache: npm
 
-      # Setup Pages step 임시 제거 — startup failure 격리 진단
-      # - name: Setup Pages
-      #   uses: actions/configure-pages@v5
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        # npm ci는 lockfile-package.json 일치 검증이 엄격하여 dev deps 추가 직후 실패할 수 있음
-        # CI 안정성을 위해 install로 fallback. ELLIS 통합 시 npm ci 복귀 권장.
         run: npm install --legacy-peer-deps
 
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Unit tests (Vitest — 76 tests: 39 unit + 37 component/a11y)
+      - name: "Unit tests (Vitest — 76 tests)"
         run: npm test
 
       - name: Install Playwright browser
@@ -64,7 +61,6 @@ jobs:
         run: npm run build
 
       - name: Bundle size budget check
-        # CI 환경에서 .next 디렉토리 권한·경로 문제 가능 — 실패해도 배포 차단 안 함
         run: npm run check:size || true
 
       - name: Add .nojekyll
@@ -75,11 +71,12 @@ jobs:
         with:
           path: ./out
 
-  # NOTE: deploy job 임시 분리 — environment "github-pages"가 startup failure 원인인지 격리
-  # 작동 확인 후 복구 예정
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
