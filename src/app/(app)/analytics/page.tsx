@@ -11,6 +11,7 @@ import { useSalesVersion } from "@/lib/store/sales-store";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
 import {
   BarChart3, TrendingDown, Filter, Target, MessageSquare, LineChart, ArrowRight,
+  Users, Grid3x3,
 } from "lucide-react";
 
 const PAGES = [
@@ -48,6 +49,20 @@ const PAGES = [
     description: "분기별 진척률 추이 + KR 카테고리 분포",
     icon: LineChart,
     tone: "secondary" as const,
+  },
+  {
+    href: "/analytics/cohort",
+    title: "고객 코호트 분석",
+    description: "첫 컨택 월별 묶음 — 매출/Win Rate 패턴",
+    icon: Users,
+    tone: "default" as const,
+  },
+  {
+    href: "/analytics/visualize",
+    title: "히트맵 / 워터폴",
+    description: "활동 요일×시간대 + OKR 진척 분해 + 매출 워터폴",
+    icon: Grid3x3,
+    tone: "default" as const,
   },
 ];
 

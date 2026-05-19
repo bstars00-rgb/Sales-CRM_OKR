@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog, DialogContent,
@@ -13,8 +13,9 @@ import { MOCK_CONTACTS } from "@/lib/mock/contacts";
 import { MOCK_ACTIVITIES, MOCK_TASKS } from "@/lib/mock/activities";
 import { MOCK_OBJECTIVES } from "@/lib/mock/kpi";
 import { useSalesVersion } from "@/lib/store/sales-store";
+import { useRecentItems } from "@/lib/store/recent-items";
 import { relativeTime } from "@/lib/utils/format";
-import { Search, Building2, Briefcase, User, LayoutDashboard, Target, FileText, ListTodo, Calendar, CheckSquare, BarChart3 } from "lucide-react";
+import { Search, Building2, Briefcase, User, LayoutDashboard, Target, FileText, ListTodo, Calendar, CheckSquare, BarChart3, Clock } from "lucide-react";
 
 interface SearchResult {
   kind: "account" | "deal" | "contact" | "activity" | "task" | "okr" | "page";
@@ -48,6 +49,7 @@ const PAGES: SearchResult[] = [
 export function CommandK() {
   const router = useRouter();
   const version = useSalesVersion();
+  const recent = useRecentItems();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -106,12 +108,45 @@ export function CommandK() {
       })),
       ...PAGES,
     ];
-    if (!q) return PAGES.slice(0, 6);
-    const filtered = all.filter((r) =>
-      [r.title, r.subtitle ?? ""].some((s) => s.toLowerCase().includes(q))
-    );
-    return filtered.slice(0, 15);
-  }, [query, version]);
+    if (!q) {
+      // 비어있을 때: 최근 사용 항목 우선 → 없으면 PAGES
+      const recentItems = recent.all().slice(0, 8);
+      const recentMapped: SearchResult[] = recentItems
+        .map((r) => all.find((x) => x.id === r.id))
+        .filter((x): x is SearchResult => x !== undefined);
+      if (recentMapped.length > 0) {
+        // 최근 + 인기 페이지 일부
+        const seen = new Set(recentMapped.map((r) => r.id));
+        const pages = PAGES.filter((p) => !seen.has(p.id)).slice(0, 4);
+        return [...recentMapped, ...pages];
+      }
+      return PAGES.slice(0, 6);
+    }
+    // 쿼리 있음: 매칭 + ranking (제목 시작 > 제목 포함 > 부제 포함, 최근 사용 가중)
+    const scored = all
+      .map((r) => {
+        const title = r.title.toLowerCase();
+        const subtitle = (r.subtitle ?? "").toLowerCase();
+        let score = 0;
+        if (title.startsWith(q)) score += 100;
+        else if (title.includes(q)) score += 60;
+        else if (subtitle.includes(q)) score += 20;
+        else return null;
+        // 짧을수록 (전체 일치에 가까울수록) 가산점
+        score += Math.max(0, 30 - title.length / 2);
+        // 최근 사용 가중치
+        score += recent.weight(r.id);
+        return { r, score };
+      })
+      .filter((x): x is { r: SearchResult; score: number } => x !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 15)
+      .map((x) => x.r);
+    return scored;
+  }, [query, version, recent]);
+
+  const isEmptyQuery = query.trim() === "";
+  const recentIds = useMemo(() => new Set(recent.all().slice(0, 8).map((r) => r.id)), [recent]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -129,6 +164,7 @@ export function CommandK() {
   }, []);
 
   const select = (r: SearchResult) => {
+    recent.record({ id: r.id, title: r.title, href: r.href, kind: r.kind });
     setOpen(false);
     setQuery("");
     router.push(r.href);
@@ -175,10 +211,23 @@ export function CommandK() {
             </div>
           ) : (
             <ul className="space-y-0.5">
+              {isEmptyQuery && recentIds.size > 0 && (
+                <li className="text-[10px] text-muted-foreground uppercase tracking-wider px-3 pt-1 pb-0.5 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />최근 사용
+                </li>
+              )}
               {results.map((r, idx) => {
                 const Icon = r.icon;
+                const isRecent = isEmptyQuery && recentIds.has(r.id);
+                const isFirstNonRecent = isEmptyQuery && idx > 0 && recentIds.has(results[idx - 1].id) && !recentIds.has(r.id);
                 return (
-                  <li key={`${r.kind}-${r.id}`}>
+                  <Fragment key={`${r.kind}-${r.id}`}>
+                    {isFirstNonRecent && (
+                      <li className="text-[10px] text-muted-foreground uppercase tracking-wider px-3 pt-2 pb-0.5">
+                        페이지
+                      </li>
+                    )}
+                    <li>
                     <button
                       onClick={() => select(r)}
                       onMouseEnter={() => setActiveIndex(idx)}
@@ -193,9 +242,11 @@ export function CommandK() {
                           <div className="text-xs text-muted-foreground truncate">{r.subtitle}</div>
                         )}
                       </div>
+                      {isRecent && <Clock className="h-3 w-3 text-muted-foreground shrink-0" />}
                       <Badge variant="muted" className="text-xs shrink-0">{KIND_LABEL[r.kind]}</Badge>
                     </button>
                   </li>
+                  </Fragment>
                 );
               })}
             </ul>
