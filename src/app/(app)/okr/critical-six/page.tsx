@@ -7,12 +7,17 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/common/ToastContext";
 import { CheckCircle2, Circle, Sparkles, Check, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { MOCK_CRITICAL_6 } from "@/lib/mock/kpi";
 import { getNextWeekSuggestions } from "@/lib/okr/next-critical-six";
+import { filterCritical6ForUser } from "@/lib/okr/visibility";
+import { useSession } from "@/lib/auth/useSession";
+import { ROLE_LABEL } from "@/lib/auth/types";
 import {
   toggleCriticalSix, replaceCriticalSix, useSalesVersion,
 } from "@/lib/store/sales-store";
 import { cn } from "@/lib/utils/cn";
+import { Eye } from "lucide-react";
 
 const SOURCE_BADGE: Record<string, { label: string; variant: "destructive" | "warning" | "default" | "secondary" | "muted" }> = {
   CARRY_OVER:           { label: "이월",            variant: "warning" },
@@ -25,14 +30,20 @@ const SOURCE_BADGE: Record<string, { label: string; variant: "destructive" | "wa
 
 export default function CriticalSixPage() {
   const version = useSalesVersion();
-  const items = MOCK_CRITICAL_6;
-  void version;
+  const session = useSession();
+  // 페르소나 필터: MEMBER는 본인, MANAGER는 본인+관리 팀원, DIRECTOR 전체, EXECUTIVE 없음
+  const items = useMemo(
+    () => (session ? filterCritical6ForUser(MOCK_CRITICAL_6, session) : MOCK_CRITICAL_6),
+    [session, version]
+  );
+  const hiddenCount = MOCK_CRITICAL_6.length - items.length;
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const toast = useToast();
   const done = items.filter((i) => i.done).length;
   const week = currentIsoWeek();
 
-  const suggestions = useMemo(() => getNextWeekSuggestions("user-mock-1", 8), [version]);
+  const suggestionTargetUserId = session?.id ?? "user-mock-1";
+  const suggestions = useMemo(() => getNextWeekSuggestions(suggestionTargetUserId, 8), [version, suggestionTargetUserId]);
 
   const toggle = (idx: number) => {
     toggleCriticalSix(idx);
@@ -75,7 +86,23 @@ export default function CriticalSixPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Critical 6</h1>
-        <p className="text-sm text-muted-foreground mt-1">2026 W{week} · 김민수 · 이번주 우선순위</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          2026 W{week} · {session?.name ?? "—"} · 이번주 우선순위
+          {session && (
+            <span className="ml-2 inline-flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              <span className="text-xs">{ROLE_LABEL[session.role]} 뷰</span>
+              {hiddenCount > 0 && (
+                <span className="text-xs text-muted-foreground/70">(권한 외 {hiddenCount}개 숨김)</span>
+              )}
+            </span>
+          )}
+        </p>
+        {session?.role === "EXECUTIVE" && (
+          <p className="text-xs text-warning mt-2 bg-warning/5 border border-warning/30 rounded p-2">
+            ⚠ C레벨 페르소나는 개인 단위 Critical 6를 보지 않습니다. 회사·팀 OKR은 <Link className="underline" href="/okr">/okr</Link>에서 확인하세요.
+          </p>
+        )}
       </div>
 
       <Card>

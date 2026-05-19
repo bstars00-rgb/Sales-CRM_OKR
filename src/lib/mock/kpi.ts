@@ -36,14 +36,23 @@ export const MOCK_KPI_CEO: KpiCard[] = [
 
 // ============================================================
 // Critical 6 (이번 주)
+// 각 항목에 ownerUserId 부여 — 페르소나별 가시성 필터에 사용
 // ============================================================
 export const MOCK_CRITICAL_6: Critical6Item[] = [
-  { title: "ABC Travel 견적서 v3 발송",  linkedDealId: "deal-1",  linkedDealName: "ABC Travel Q4 객실 공급", by: "5/9 EOD", done: true },
-  { title: "JKL Travel 첫 미팅 잡기",    linkedDealId: "deal-2",  linkedDealName: "JKL 분기 거래 가능성",     by: "5/8",     done: true },
-  { title: "Q3 시즌 패키지 워킹세션",                                                                          by: "5/10",    done: true },
-  { title: "여기어때 API 일정 협의",     linkedDealId: "deal-34", linkedDealName: "여기어때 API 라이브",       by: "5/12",    done: true },
-  { title: "API 통합팀 정례 동기화",                                                                            by: "5/7",     done: true },
-  { title: "주간보고 + 1on1",                                                                                    by: "5/10 EOD",done: false },
+  // 김민수 (user-mock-1, MEMBER 페르소나)
+  { title: "ABC Travel 견적서 v3 발송",  linkedDealId: "deal-1",  linkedDealName: "ABC Travel Q4 객실 공급", by: "5/9 EOD", done: true,  ownerUserId: "user-mock-1" },
+  { title: "JKL Travel 첫 미팅 잡기",    linkedDealId: "deal-2",  linkedDealName: "JKL 분기 거래 가능성",     by: "5/8",     done: true,  ownerUserId: "user-mock-1" },
+  { title: "Q3 시즌 패키지 워킹세션",                                                                          by: "5/10",    done: true,  ownerUserId: "user-mock-1" },
+  { title: "여기어때 API 일정 협의",     linkedDealId: "deal-34", linkedDealName: "여기어때 API 라이브",       by: "5/12",    done: true,  ownerUserId: "user-mock-1" },
+  { title: "API 통합팀 정례 동기화",                                                                            by: "5/7",     done: true,  ownerUserId: "user-mock-1" },
+  { title: "주간보고 + 1on1",                                                                                    by: "5/10 EOD",done: false, ownerUserId: "user-mock-1" },
+  // 박지영 (user-park, MANAGER 페르소나)
+  { title: "Hana Tour 분기 패키지 견적", linkedDealId: "deal-32", linkedDealName: "Hana Tour 분기 패키지",     by: "5/9",     done: true,  ownerUserId: "user-park" },
+  { title: "Mode Tour 분기 갱신 협상",   linkedDealId: "deal-28", linkedDealName: "Mode Tour 분기 갱신",       by: "5/12",    done: false, ownerUserId: "user-park" },
+  { title: "팀원 1on1 (김민수·하나)",                                                                            by: "5/10",    done: false, ownerUserId: "user-park" },
+  // Linh Tran (user-linh, MEMBER)
+  { title: "ABC API 라이브 일정",         linkedDealId: "deal-7",  linkedDealName: "ABC Travel API 라이브",     by: "5/12",    done: false, ownerUserId: "user-linh" },
+  { title: "Saigontourist 정산 보조",     linkedDealId: "deal-33", linkedDealName: "Saigontourist 정산 보조",   by: "5/14",    done: false, ownerUserId: "user-linh" },
 ];
 
 // ============================================================
@@ -53,7 +62,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   // 회사 (2)
   {
     id: "obj-co-1", title: "핵심 5개국에서 거래액 +35%, GP율 16%",
-    ownerKind: "COMPANY", ownerName: "Demo Hotel B2B Co.",
+    ownerKind: "COMPANY", ownerName: "Demo Hotel B2B Co.", ownerId: "company",
     periodLabel: "2026 / YEAR", progressPct: 56,
     keyResults: [
       { id: "kr-1", title: "연간 거래액 ₩42B → ₩57B",            metricKind: "CURRENCY", targetValue: 57_000_000_000, currentValue: 31_000_000_000, unit: "KRW", progressPct: 54 },
@@ -64,7 +73,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   },
   {
     id: "obj-co-2", title: "API 연동 고객사 확장으로 디지털 매출 비중 50% 달성",
-    ownerKind: "COMPANY", ownerName: "Demo Hotel B2B Co.",
+    ownerKind: "COMPANY", ownerName: "Demo Hotel B2B Co.", ownerId: "company",
     periodLabel: "2026 / YEAR", progressPct: 62,
     keyResults: [
       { id: "kr-5", title: "API 연동 라이브 24개 (현재 19)",       metricKind: "NUMBER",  targetValue: 24, currentValue: 21,  progressPct: 88 },
@@ -76,7 +85,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   // 팀 (3)
   {
     id: "obj-team-kr", title: "Korea OTA 4사 거래액 두 자릿수 성장",
-    ownerKind: "TEAM", ownerName: "Korea Sales Team",
+    ownerKind: "TEAM", ownerName: "Korea Sales Team", ownerId: "team-kr",
     periodLabel: "2026 / Q2", progressPct: 72,
     keyResults: [
       { id: "kr-8",  title: "한국 분기 거래액 ₩3.1B → ₩3.8B",      metricKind: "CURRENCY", targetValue: 3_800_000_000, currentValue: 2_900_000_000, unit: "KRW", progressPct: 76 },
@@ -86,7 +95,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   },
   {
     id: "obj-team-vn", title: "베트남 시장 KEY 고객사 풀 두 배",
-    ownerKind: "TEAM", ownerName: "Vietnam Sales Team",
+    ownerKind: "TEAM", ownerName: "Vietnam Sales Team", ownerId: "team-vn",
     periodLabel: "2026 / Q2", progressPct: 68,
     keyResults: [
       { id: "kr-11", title: "신규 KEY/GROWTH 고객사 8개 (현재 4)",  metricKind: "NUMBER",   targetValue: 8,             currentValue: 6,             progressPct: 75 },
@@ -96,7 +105,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   },
   {
     id: "obj-team-jp", title: "일본 시장 회복 + JTB·HIS 거래 확대",
-    ownerKind: "TEAM", ownerName: "Japan Sales Team",
+    ownerKind: "TEAM", ownerName: "Japan Sales Team", ownerId: "team-jp",
     periodLabel: "2026 / Q2", progressPct: 55,
     keyResults: [
       { id: "kr-14", title: "일본 분기 매출 ₩2.4B → ₩2.8B",        metricKind: "CURRENCY", targetValue: 2_800_000_000, currentValue: 1_540_000_000, unit: "KRW", progressPct: 55 },
@@ -108,7 +117,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   // 개인 (4)
   {
     id: "obj-user-km", title: "4대 핵심 고객사 분기 거래액 +30%",
-    ownerKind: "USER", ownerName: "김민수",
+    ownerKind: "USER", ownerName: "김민수", ownerId: "user-mock-1",
     periodLabel: "2026 / Q2", progressPct: 88,
     keyResults: [
       { id: "kr-17", title: "4대 고객사 거래액 ₩1.2B → ₩1.56B",    metricKind: "CURRENCY", targetValue: 1_560_000_000, currentValue: 1_400_000_000, unit: "KRW", progressPct: 90 },
@@ -119,7 +128,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   },
   {
     id: "obj-user-park", title: "Hana Tour·Mode Tour 갱신 + 단가 인상",
-    ownerKind: "USER", ownerName: "박지영",
+    ownerKind: "USER", ownerName: "박지영", ownerId: "user-park",
     periodLabel: "2026 / Q2", progressPct: 62,
     keyResults: [
       { id: "kr-21", title: "두 고객사 갱신 계약 완료",            metricKind: "NUMBER",   targetValue: 2,             currentValue: 1,             progressPct: 50 },
@@ -129,7 +138,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   },
   {
     id: "obj-user-linh", title: "베트남 KEY 4사 분기 안정화",
-    ownerKind: "USER", ownerName: "Linh Tran",
+    ownerKind: "USER", ownerName: "Linh Tran", ownerId: "user-linh",
     periodLabel: "2026 / Q2", progressPct: 74,
     keyResults: [
       { id: "kr-24", title: "ABC·LMN·Saigontourist 분기 매출 ₩1.5B+", metricKind: "CURRENCY", targetValue: 1_500_000_000, currentValue: 1_120_000_000, unit: "KRW", progressPct: 75 },
@@ -138,7 +147,7 @@ export const MOCK_OBJECTIVES: Objective[] = [
   },
   {
     id: "obj-user-naka", title: "JTB·HIS 가격 협상 + Tokyo Bridge 재진입",
-    ownerKind: "USER", ownerName: "나카무라 켄지",
+    ownerKind: "USER", ownerName: "나카무라 켄지", ownerId: "user-nakamura",
     periodLabel: "2026 / Q2", progressPct: 48,
     keyResults: [
       { id: "kr-26", title: "JTB Q2 GP ₩50M+",                     metricKind: "CURRENCY", targetValue: 50_000_000,    currentValue: 40_500_000,    unit: "KRW", progressPct: 81 },

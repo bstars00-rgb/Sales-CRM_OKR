@@ -17,7 +17,7 @@ import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 interface IncentiveRule {
   id: string;
   kpiCode: string;
-  appliesToRole: "SALES_MANAGER" | "SALES_LEAD" | "ALL";
+  appliesToRole: "MEMBER" | "MANAGER" | "DIRECTOR" | "ALL";
   thresholdPct: number;
   ratePerUnit: number;
   capAmount?: number;
@@ -35,10 +35,10 @@ const KPI_OPTIONS = [
 ];
 
 const SEED_RULES: IncentiveRule[] = [
-  { id: "r1", kpiCode: "REVENUE",      appliesToRole: "SALES_MANAGER", thresholdPct: 80, ratePerUnit: 30_000,  capAmount: 15_000_000, effectiveFrom: "2026-01-01" },
-  { id: "r2", kpiCode: "GP",           appliesToRole: "SALES_MANAGER", thresholdPct: 80, ratePerUnit: 30_000,  capAmount: 15_000_000, effectiveFrom: "2026-01-01" },
-  { id: "r3", kpiCode: "NEW_ACCOUNTS", appliesToRole: "SALES_MANAGER", thresholdPct: 80, ratePerUnit: 30_000,                          effectiveFrom: "2026-01-01" },
-  { id: "r4", kpiCode: "REVENUE",      appliesToRole: "SALES_LEAD",    thresholdPct: 75, ratePerUnit: 50_000,  capAmount: 25_000_000, effectiveFrom: "2026-01-01" },
+  { id: "r1", kpiCode: "REVENUE",      appliesToRole: "MEMBER",  thresholdPct: 80, ratePerUnit: 30_000,  capAmount: 15_000_000, effectiveFrom: "2026-01-01" },
+  { id: "r2", kpiCode: "GP",           appliesToRole: "MEMBER",  thresholdPct: 80, ratePerUnit: 30_000,  capAmount: 15_000_000, effectiveFrom: "2026-01-01" },
+  { id: "r3", kpiCode: "NEW_ACCOUNTS", appliesToRole: "MEMBER",  thresholdPct: 80, ratePerUnit: 30_000,                         effectiveFrom: "2026-01-01" },
+  { id: "r4", kpiCode: "REVENUE",      appliesToRole: "MANAGER", thresholdPct: 75, ratePerUnit: 50_000,  capAmount: 25_000_000, effectiveFrom: "2026-01-01" },
 ];
 
 export default function IncentiveRulesPage() {
@@ -56,7 +56,7 @@ export default function IncentiveRulesPage() {
     setEditingId("new");
     setDraft({
       kpiCode: "REVENUE",
-      appliesToRole: "SALES_MANAGER",
+      appliesToRole: "MEMBER",
       thresholdPct: 80,
       ratePerUnit: 30_000,
       effectiveFrom: new Date().toISOString().split("T")[0],
@@ -211,8 +211,9 @@ function EditForm({
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="SALES_MANAGER">Sales Manager</SelectItem>
-              <SelectItem value="SALES_LEAD">Sales Lead</SelectItem>
+              <SelectItem value="MEMBER">팀원</SelectItem>
+              <SelectItem value="MANAGER">매니저</SelectItem>
+              <SelectItem value="DIRECTOR">디렉터</SelectItem>
               <SelectItem value="ALL">전체</SelectItem>
             </SelectContent>
           </Select>

@@ -20,8 +20,9 @@ export interface CriticalSixSuggestion {
 export function getNextWeekSuggestions(userId: string, limit = 8): CriticalSixSuggestion[] {
   const out: CriticalSixSuggestion[] = [];
 
-  // 1. 이번주 이월 (Critical 6 미완료)
+  // 1. 이번주 이월 (Critical 6 미완료) — 본인 항목만
   for (const item of MOCK_CRITICAL_6) {
+    if (item.ownerUserId && item.ownerUserId !== userId) continue;
     if (!item.done) {
       out.push({
         title: item.title,
@@ -119,11 +120,16 @@ export function getNextWeekSuggestions(userId: string, limit = 8): CriticalSixSu
     by: "다음주 일 EOD",
   });
 
-  // 우선순위 정렬 + limit
+  // 우선순위 정렬 + limit (BRIEF는 항상 포함)
   const priorityOrder = { HIGH: 0, MED: 1, LOW: 2 };
-  return out
-    .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
-    .slice(0, limit);
+  const sorted = out.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  const briefIdx = sorted.findIndex((x) => x.source === "BRIEF");
+  const top = sorted.slice(0, limit);
+  if (briefIdx >= 0 && !top.find((x) => x.source === "BRIEF")) {
+    // BRIEF가 잘려 나갔으면 마지막에 강제 삽입
+    top[top.length - 1] = sorted[briefIdx];
+  }
+  return top;
 }
 
 function formatCurrency(n: number): string {

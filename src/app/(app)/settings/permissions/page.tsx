@@ -6,11 +6,11 @@ import { DEFAULT_PERMISSIONS, PERMISSION_LABEL, RESOURCE_LABEL, type PermissionM
 import { ROLE_LABEL, type UserRole } from "@/lib/auth/types";
 import { Shield, Lock } from "lucide-react";
 
-const ROLES: UserRole[] = ["SUPER_ADMIN", "SALES_LEAD", "SALES_MANAGER", "COLLABORATOR"];
+const ROLES: UserRole[] = ["MEMBER", "MANAGER", "DIRECTOR", "EXECUTIVE"];
 const RESOURCES: (keyof PermissionMatrix)[] = [
   "accounts", "deals", "activities", "okr",
   "brief", "team_brief", "company_brief",
-  "incentive_rules", "audit_log", "org_settings",
+  "incentive_rules", "audit_log", "org_settings", "one_on_one",
 ];
 
 export default function PermissionsPage() {

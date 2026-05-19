@@ -1,12 +1,11 @@
 /**
- * 역할 기반 권한 매트릭스 — 코드 안에서만 사용되던 권한을 명세화.
+ * 역할 기반 권한 매트릭스 — 4 페르소나.
  *
- * 4개 역할 × 핵심 영역의 권한 정의:
  * - read  : 보기
  * - write : 본인 데이터 편집
  * - admin : 타인 데이터·시스템 편집
  *
- * UI에서 변경 가능하지만 실제 적용은 ELLIS 통합 시. 현재는 표시·검증용.
+ * UI에서 표시·검증용. 실제 적용은 ELLIS 통합 시.
  */
 
 import type { UserRole } from "./types";
@@ -24,28 +23,37 @@ export interface PermissionMatrix {
   incentive_rules: Permission;
   audit_log: Permission;
   org_settings: Permission;
+  one_on_one: Permission;
 }
 
 export const DEFAULT_PERMISSIONS: Record<UserRole, PermissionMatrix> = {
-  SUPER_ADMIN: {
+  // 팀원 — 본인 영역만 편집, 회사·팀 데이터는 보기
+  MEMBER: {
+    accounts: "write", deals: "write", activities: "write", okr: "write",
+    brief: "write", team_brief: "read", company_brief: "read",
+    incentive_rules: "read", audit_log: "none", org_settings: "none",
+    one_on_one: "none",
+  },
+  // 매니저 — 본인 + 관리 팀원 데이터 편집, 팀 보고서 관리
+  MANAGER: {
+    accounts: "write", deals: "write", activities: "write", okr: "write",
+    brief: "write", team_brief: "admin", company_brief: "read",
+    incentive_rules: "read", audit_log: "read", org_settings: "none",
+    one_on_one: "admin",
+  },
+  // 디렉터 — 전체 admin
+  DIRECTOR: {
     accounts: "admin", deals: "admin", activities: "admin", okr: "admin",
     brief: "admin", team_brief: "admin", company_brief: "admin",
     incentive_rules: "admin", audit_log: "admin", org_settings: "admin",
+    one_on_one: "admin",
   },
-  SALES_LEAD: {
-    accounts: "admin", deals: "admin", activities: "admin", okr: "write",
-    brief: "write", team_brief: "admin", company_brief: "read",
-    incentive_rules: "write", audit_log: "read", org_settings: "none",
-  },
-  SALES_MANAGER: {
-    accounts: "write", deals: "write", activities: "write", okr: "write",
-    brief: "write", team_brief: "read", company_brief: "none",
-    incentive_rules: "read", audit_log: "none", org_settings: "none",
-  },
-  COLLABORATOR: {
-    accounts: "read", deals: "read", activities: "write", okr: "read",
-    brief: "read", team_brief: "none", company_brief: "none",
-    incentive_rules: "none", audit_log: "none", org_settings: "none",
+  // C레벨 — 보고서·회사/팀 OKR 열람 (실행 책임 없음)
+  EXECUTIVE: {
+    accounts: "read", deals: "read", activities: "read", okr: "read",
+    brief: "read", team_brief: "read", company_brief: "read",
+    incentive_rules: "read", audit_log: "read", org_settings: "none",
+    one_on_one: "none",
   },
 };
 
@@ -67,4 +75,12 @@ export const RESOURCE_LABEL: Record<keyof PermissionMatrix, string> = {
   incentive_rules: "인센티브 룰",
   audit_log:       "감사 로그",
   org_settings:    "조직 설정",
+  one_on_one:      "1on1 노트",
 };
+
+/** 페르소나가 특정 리소스에 가진 권한 조회 */
+export function hasPermission(role: UserRole, resource: keyof PermissionMatrix, level: Permission): boolean {
+  const order: Record<Permission, number> = { none: 0, read: 1, write: 2, admin: 3 };
+  const got = DEFAULT_PERMISSIONS[role][resource];
+  return order[got] >= order[level];
+}

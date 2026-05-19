@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { getObjectivesWithAutoProgress } from "@/lib/okr/auto-progress";
+import { filterObjectivesForUser } from "@/lib/okr/visibility";
+import { useSession } from "@/lib/auth/useSession";
+import { ROLE_LABEL } from "@/lib/auth/types";
 import { useSalesVersion } from "@/lib/store/sales-store";
-import { ArrowLeft, Trophy, TrendingUp, TrendingDown, Sparkles, Target } from "lucide-react";
+import { ArrowLeft, Trophy, TrendingUp, TrendingDown, Sparkles, Target, Eye } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const KIND_LABEL: Record<"COMPANY" | "TEAM" | "USER", string> = {
@@ -17,7 +20,13 @@ const KIND_LABEL: Record<"COMPANY" | "TEAM" | "USER", string> = {
 
 export default function OkrRetroPage() {
   const version = useSalesVersion();
-  const objectives = useMemo(() => getObjectivesWithAutoProgress(), [version]);
+  const session = useSession();
+  const all = useMemo(() => getObjectivesWithAutoProgress(), [version]);
+  const objectives = useMemo(
+    () => (session ? filterObjectivesForUser(all, session) : all),
+    [all, session]
+  );
+  void version;
 
   // 분기 회고 점수 계산:
   // - 평균 진척률 = OKR 점수 (Google OKR 가이드: 60-80%가 이상적)
@@ -25,9 +34,9 @@ export default function OkrRetroPage() {
   // - 60-69%: 양호
   // - <60%: 부진 (보수적 목표였거나 실행 실패)
   // - 100%+: 너무 보수적 (다음 분기 더 도전적으로)
-  const avgScore = Math.round(
-    objectives.reduce((s, o) => s + o.progressPct, 0) / objectives.length
-  );
+  const avgScore = objectives.length === 0
+    ? 0
+    : Math.round(objectives.reduce((s, o) => s + o.progressPct, 0) / objectives.length);
 
   const ratings: Record<string, { label: string; variant: "success" | "warning" | "destructive" | "default"; advice: string }> = {
     excellent: { label: "🏆 우수",   variant: "success",     advice: "도전적인 목표를 달성. 다음 분기에도 비슷한 난이도 권장." },
@@ -74,7 +83,15 @@ export default function OkrRetroPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between flex-wrap gap-2">
-            <span>2026 Q2 분기 회고 (시뮬)</span>
+            <span className="flex items-center gap-2">
+              2026 Q2 분기 회고 (시뮬)
+              {session && (
+                <span className="inline-flex items-center gap-1 text-xs font-normal text-muted-foreground">
+                  <Eye className="h-3 w-3" />
+                  {ROLE_LABEL[session.role]} 뷰 · {objectives.length}개 Objective
+                </span>
+              )}
+            </span>
             <Badge variant="muted" className="text-xs">자동 집계</Badge>
           </CardTitle>
         </CardHeader>

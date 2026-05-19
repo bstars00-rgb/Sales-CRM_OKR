@@ -12,8 +12,10 @@ export default function HomePage() {
       router.replace("/login");
       return;
     }
-    if (s.role === "SUPER_ADMIN") router.replace("/dashboard/ceo");
-    else if (s.role === "SALES_LEAD") router.replace("/dashboard/lead");
+    // 페르소나별 진입점
+    if (s.role === "EXECUTIVE") router.replace("/dashboard/ceo");
+    else if (s.role === "DIRECTOR") router.replace("/dashboard/lead");
+    else if (s.role === "MANAGER") router.replace("/dashboard/lead");
     else router.replace("/dashboard/manager");
   }, [router]);
 

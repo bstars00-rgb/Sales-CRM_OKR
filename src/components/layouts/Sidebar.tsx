@@ -21,10 +21,11 @@ const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "대시보드",
     items: [
-      { href: "/dashboard/manager", label: "내 대시보드", icon: LayoutDashboard },
-      { href: "/digest",            label: "다이제스트", icon: Bell },
-      { href: "/dashboard/lead",    label: "팀 대시보드", icon: BarChart3, roles: ["SUPER_ADMIN", "SALES_LEAD"] },
-      { href: "/dashboard/ceo",     label: "회사 대시보드", icon: BarChart3, roles: ["SUPER_ADMIN"] },
+      // 내 대시보드: C레벨은 보지 않음 (개인 KPI 영역)
+      { href: "/dashboard/manager", label: "내 대시보드", icon: LayoutDashboard, roles: ["MEMBER", "MANAGER", "DIRECTOR"] },
+      { href: "/digest",            label: "다이제스트", icon: Bell, roles: ["MEMBER", "MANAGER", "DIRECTOR"] },
+      { href: "/dashboard/lead",    label: "팀 대시보드", icon: BarChart3, roles: ["MANAGER", "DIRECTOR"] },
+      { href: "/dashboard/ceo",     label: "회사 대시보드", icon: BarChart3, roles: ["DIRECTOR", "EXECUTIVE"] },
     ],
   },
   {
@@ -35,15 +36,15 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/crm/forecast",      label: "Forecast", icon: TrendingUp },
       { href: "/crm/hotel-metrics", label: "호텔 지표", icon: Hotel },
       { href: "/crm/renewals",      label: "갱신 파이프", icon: RefreshCw },
-      { href: "/crm/activities",    label: "활동", icon: Calendar },
-      { href: "/tasks",             label: "태스크", icon: ListTodo },
+      { href: "/crm/activities",    label: "활동", icon: Calendar, roles: ["MEMBER", "MANAGER", "DIRECTOR"] },
+      { href: "/tasks",             label: "태스크", icon: ListTodo, roles: ["MEMBER", "MANAGER", "DIRECTOR"] },
     ],
   },
   {
     section: "목표 · 성과",
     items: [
       { href: "/okr",                label: "OKR", icon: Target },
-      { href: "/okr/critical-six",   label: "Critical 6", icon: Target },
+      { href: "/okr/critical-six",   label: "Critical 6", icon: Target, roles: ["MEMBER", "MANAGER", "DIRECTOR"] },
       { href: "/kpi",                label: "KPI · 인센티브", icon: BarChart3 },
       { href: "/analytics",          label: "Analytics", icon: BarChart3 },
     ],
@@ -51,26 +52,26 @@ const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "보고",
     items: [
-      { href: "/brief",              label: "내 주간보고", icon: FileText },
-      { href: "/brief/team",         label: "팀 주간보고", icon: FileText, roles: ["SUPER_ADMIN", "SALES_LEAD"] },
-      { href: "/brief/company",      label: "회사 주간보고", icon: FileText, roles: ["SUPER_ADMIN"] },
+      { href: "/brief",              label: "내 주간보고", icon: FileText, roles: ["MEMBER", "MANAGER", "DIRECTOR"] },
+      { href: "/brief/team",         label: "팀 주간보고", icon: FileText, roles: ["MANAGER", "DIRECTOR", "EXECUTIVE"] },
+      { href: "/brief/company",      label: "회사 주간보고", icon: FileText, roles: ["DIRECTOR", "EXECUTIVE"] },
     ],
   },
   {
     section: "팀",
     items: [
-      { href: "/team/one-on-ones",   label: "1on1 노트", icon: MessageSquare, roles: ["SUPER_ADMIN", "SALES_LEAD"] },
+      { href: "/team/one-on-ones",   label: "1on1 노트", icon: MessageSquare, roles: ["MANAGER", "DIRECTOR"] },
     ],
   },
   {
     section: "설정",
     items: [
-      { href: "/settings/notifications", label: "알림 룰", icon: Bell },
-      { href: "/settings/audit",         label: "감사 로그", icon: ScrollText },
-      { href: "/settings/import",        label: "CSV 가져오기", icon: Upload },
+      { href: "/settings/notifications", label: "알림 룰", icon: Bell, roles: ["MEMBER", "MANAGER", "DIRECTOR"] },
+      { href: "/settings/audit",         label: "감사 로그", icon: ScrollText, roles: ["MANAGER", "DIRECTOR", "EXECUTIVE"] },
+      { href: "/settings/import",        label: "CSV 가져오기", icon: Upload, roles: ["MANAGER", "DIRECTOR"] },
       { href: "/settings/backup",        label: "백업/복원", icon: Save },
       { href: "/settings/permissions",   label: "권한", icon: Shield },
-      { href: "/settings/org",           label: "조직 설정", icon: Settings, roles: ["SUPER_ADMIN"] },
+      { href: "/settings/org",           label: "조직 설정", icon: Settings, roles: ["DIRECTOR"] },
     ],
   },
 ];

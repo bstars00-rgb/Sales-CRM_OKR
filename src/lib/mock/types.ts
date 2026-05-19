@@ -145,6 +145,8 @@ export interface Critical6Item {
   linkedKrId?: string;
   by?: string;
   done: boolean;
+  /** 이 항목 소유자 (페르소나 가시성 필터용) */
+  ownerUserId?: string;
 }
 
 export interface Objective {
@@ -152,6 +154,8 @@ export interface Objective {
   title: string;
   ownerKind: "COMPANY" | "TEAM" | "USER";
   ownerName: string;
+  /** ownerKind=USER이면 userId, ownerKind=TEAM이면 teamId, COMPANY이면 "company" */
+  ownerId?: string;
   periodLabel: string;
   progressPct: number;
   keyResults: KeyResult[];

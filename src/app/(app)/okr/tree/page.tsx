@@ -6,8 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { MOCK_OBJECTIVES } from "@/lib/mock/kpi";
-import { Target, ArrowDown, ArrowLeft } from "lucide-react";
+import { filterObjectivesForUser } from "@/lib/okr/visibility";
+import { useSession } from "@/lib/auth/useSession";
+import { ROLE_LABEL } from "@/lib/auth/types";
+import { Target, ArrowDown, ArrowLeft, Eye } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useMemo } from "react";
 
 const KIND_BADGE = {
   COMPANY: { label: "회사", variant: "default" as const, color: "border-primary/40 bg-primary/5" },
@@ -16,9 +20,14 @@ const KIND_BADGE = {
 };
 
 export default function OkrTreePage() {
-  const company = MOCK_OBJECTIVES.find((o) => o.ownerKind === "COMPANY");
-  const team = MOCK_OBJECTIVES.find((o) => o.ownerKind === "TEAM");
-  const user = MOCK_OBJECTIVES.find((o) => o.ownerKind === "USER");
+  const session = useSession();
+  const visible = useMemo(
+    () => (session ? filterObjectivesForUser(MOCK_OBJECTIVES, session) : MOCK_OBJECTIVES),
+    [session]
+  );
+  const company = visible.find((o) => o.ownerKind === "COMPANY");
+  const team = visible.find((o) => o.ownerKind === "TEAM");
+  const user = visible.find((o) => o.ownerKind === "USER");
 
   return (
     <div className="space-y-5">
@@ -35,6 +44,12 @@ export default function OkrTreePage() {
           <h1 className="text-2xl font-bold tracking-tight">OKR 정렬 트리</h1>
           <p className="text-sm text-muted-foreground mt-1">
             회사 → 팀 → 개인 OKR이 어떻게 연결되는지 시각화
+            {session && (
+              <span className="ml-2 inline-flex items-center gap-1">
+                <Eye className="h-3 w-3" />
+                <span className="text-xs">{ROLE_LABEL[session.role]} 뷰</span>
+              </span>
+            )}
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>

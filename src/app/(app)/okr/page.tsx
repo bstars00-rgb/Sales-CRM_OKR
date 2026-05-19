@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { getObjectivesWithAutoProgress } from "@/lib/okr/auto-progress";
+import { filterObjectivesForUser } from "@/lib/okr/visibility";
+import { useSession } from "@/lib/auth/useSession";
+import { ROLE_LABEL } from "@/lib/auth/types";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils/format";
-import { Plus, Target, Sparkles } from "lucide-react";
+import { Plus, Target, Sparkles, Eye } from "lucide-react";
 
 const KIND_BADGE: Record<"COMPANY" | "TEAM" | "USER", { label: string; variant: "default" | "secondary" | "muted" }> = {
   COMPANY: { label: "회사", variant: "default" },
@@ -24,13 +27,30 @@ function formatKr(metricKind: string, value: number, unit?: string) {
 }
 
 export default function OkrPage() {
-  const objectives = useMemo(getObjectivesWithAutoProgress, []);
+  const session = useSession();
+  const all = useMemo(getObjectivesWithAutoProgress, []);
+  const objectives = useMemo(
+    () => (session ? filterObjectivesForUser(all, session) : all),
+    [all, session]
+  );
+  const hiddenCount = all.length - objectives.length;
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">OKR</h1>
-          <p className="text-sm text-muted-foreground mt-1">2026 / Q2 · 회사 → 팀 → 개인 정렬</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            2026 / Q2 · 회사 → 팀 → 개인 정렬
+            {session && (
+              <span className="ml-2 inline-flex items-center gap-1">
+                <Eye className="h-3 w-3" />
+                <span className="text-xs">{ROLE_LABEL[session.role]} 뷰</span>
+                {hiddenCount > 0 && (
+                  <span className="text-xs text-muted-foreground/70">(권한 외 {hiddenCount}개 숨김)</span>
+                )}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button asChild variant="outline" size="sm">
